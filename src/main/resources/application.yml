@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: rule-condition-engine
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ruleengine
+    username: ruleengine
+    password: ruleengine
+    hikari:
+      connection-timeout: 10000
+      validation-timeout: 5000
+      idle-timeout: 5000
+      max-lifetime: 1500000
+      maximum-pool-size: 10
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        query:
+          fail_on_pagination_over_collection_fetch: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+  threads:
+    virtual:
+      enabled: true
+
+rule-engine:
+  # Guardrails against pathological or hostile rule trees reaching the planner.
+  max-tree-depth: 8
+  max-node-count: 128
+  max-in-list-size: 500
+  default-page-size: 50
+  max-page-size: 500
+
+logging:
+  level:
+    com.eliezer.ruleengine: DEBUG

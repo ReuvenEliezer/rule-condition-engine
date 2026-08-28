@@ -1,0 +1,34 @@
+# Local development stack only. Credentials below are dev-only defaults and are
+# NOT appropriate for any shared or production environment.
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    container_name: rule-engine-postgres
+    environment:
+      POSTGRES_DB: ruleengine
+      POSTGRES_USER: ruleengine
+      POSTGRES_PASSWORD: ruleengine
+      # Deterministic collation so CONTAINS/ORDER BY behave identically to CI
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=en-US --encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      # postgres:18+ stores data in a major-version subdirectory and refuses to start when the
+      # mount is at /var/lib/postgresql/data. Mount the parent instead.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      # pg_isready ships with the official image; no external tooling assumed.
+      test: ["CMD-SHELL", "pg_isready -U ruleengine -d ruleengine"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - rule-engine-net
+
+networks:
+  rule-engine-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
