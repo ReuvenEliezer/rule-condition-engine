@@ -1,22 +1,24 @@
 package com.eliezer.ruleengine.api;
 
-import com.eliezer.ruleengine.api.dto.CreateRuleRequest;
+import com.eliezer.ruleengine.api.crud.CrudController;
 import com.eliezer.ruleengine.api.dto.MatchScope;
 import com.eliezer.ruleengine.api.dto.PageResponse;
-import com.eliezer.ruleengine.api.dto.PersonMatch;
+import com.eliezer.ruleengine.api.dto.PersonVm;
 import com.eliezer.ruleengine.api.dto.PreviewRequest;
-import com.eliezer.ruleengine.api.dto.RuleResponse;
+import com.eliezer.ruleengine.api.dto.RuleVm;
+import com.eliezer.ruleengine.api.dto.Vms;
+import com.eliezer.ruleengine.domain.Rule;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.eliezer.ruleengine.rule.compiler.PersonFieldRegistry;
 import com.eliezer.ruleengine.rule.compiler.RuleCompiler;
 import com.eliezer.ruleengine.rule.validation.RuleEngineProperties;
+import com.eliezer.ruleengine.service.RuleCrudService;
 import com.eliezer.ruleengine.service.RuleEvaluationService;
 import com.eliezer.ruleengine.service.RuleService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,16 +26,19 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The four inherited CRUD operations (from {@link CrudController}) plus the rule-specific
+ * operations that are not part of the uniform contract (FR-012): condition replacement, evaluation,
+ * dry-run preview, and the queryable-field list.
+ */
 @RestController
 @RequestMapping("/api/v1/rules")
-@RequiredArgsConstructor
-public class RuleController {
+public class RuleController extends CrudController<Rule, RuleVm, UUID> {
 
     private final RuleService ruleService;
     private final RuleEvaluationService evaluationService;
@@ -41,41 +46,46 @@ public class RuleController {
     private final PersonFieldRegistry personFieldRegistry;
     private final RuleEngineProperties properties;
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public RuleResponse create(@Valid @RequestBody CreateRuleRequest request) {
-        return RuleResponse.from(ruleService.create(request));
-    }
-
-    @GetMapping("/{ruleId}")
-    public RuleResponse get(@PathVariable UUID ruleId) {
-        return RuleResponse.from(ruleService.get(ruleId));
+    public RuleController(RuleCrudService crudService,
+                          RuleService ruleService,
+                          RuleEvaluationService evaluationService,
+                          RuleCompiler ruleCompiler,
+                          PersonFieldRegistry personFieldRegistry,
+                          RuleEngineProperties properties) {
+        super(crudService, properties);
+        this.ruleService = ruleService;
+        this.evaluationService = evaluationService;
+        this.ruleCompiler = ruleCompiler;
+        this.personFieldRegistry = personFieldRegistry;
+        this.properties = properties;
     }
 
     @PutMapping("/{ruleId}/condition")
-    public RuleResponse updateCondition(@PathVariable UUID ruleId,
-                                        @Valid @RequestBody PreviewRequest request) {
-        return RuleResponse.from(ruleService.updateCondition(ruleId, request.condition()));
+    public RuleVm updateCondition(@PathVariable UUID ruleId,
+                                  @Valid @RequestBody PreviewRequest request) {
+        return ruleService.updateCondition(ruleId, request.condition());
     }
 
     @GetMapping("/{ruleId}/matches")
-    public PageResponse<PersonMatch> matches(@PathVariable UUID ruleId,
-                                             @RequestParam(defaultValue = "GLOBAL") MatchScope scope,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(required = false) Integer size) {
+    @JsonView(Vms.Summary.class)
+    public PageResponse<PersonVm> matches(@PathVariable UUID ruleId,
+                                          @RequestParam(defaultValue = "GLOBAL") MatchScope scope,
+                                          @RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(required = false) Integer size) {
         return PageResponse.from(
                 evaluationService.evaluate(ruleId, scope, pageable(page, size)),
-                PersonMatch::from);
+                java.util.function.Function.identity());
     }
 
     /** Dry-run an unsaved tree. */
     @PostMapping("/preview")
-    public PageResponse<PersonMatch> preview(@Valid @RequestBody PreviewRequest request,
-                                             @RequestParam(defaultValue = "0") int page,
-                                             @RequestParam(required = false) Integer size) {
+    @JsonView(Vms.Summary.class)
+    public PageResponse<PersonVm> preview(@Valid @RequestBody PreviewRequest request,
+                                          @RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(required = false) Integer size) {
         return PageResponse.from(
                 evaluationService.preview(request.condition(), pageable(page, size)),
-                PersonMatch::from);
+                java.util.function.Function.identity());
     }
 
     /** Drives the field dropdown in a rule-builder UI. */
@@ -85,8 +95,8 @@ public class RuleController {
     }
 
     /**
-     * Page size is clamped server-side. Trusting a client-supplied size lets one request ask for
-     * the entire population in a single round trip.
+     * Local clamping for the two person-returning endpoints outside the inherited contract. The
+     * CRUD list endpoint's clamping lives in {@link CrudController}.
      */
     private Pageable pageable(int page, Integer size) {
         int effective = size == null

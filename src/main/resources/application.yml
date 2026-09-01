@@ -27,6 +27,15 @@ spring:
   threads:
     virtual:
       enabled: true
+  jackson:
+    mapper:
+      # A field with no @JsonView is included in every view. The VMs annotate every field, so this
+      # only affects envelope types (PageResponse) and nested payloads (the rule condition tree),
+      # which must not be filtered by the summary/detail split.
+      default-view-inclusion: true
+    deserialization:
+      # Reject fields the target record does not declare rather than ignoring them (FR-018).
+      fail-on-unknown-properties: true
 
 rule-engine:
   # Guardrails against pathological or hostile rule trees reaching the planner.
@@ -39,3 +48,6 @@ rule-engine:
 logging:
   level:
     com.eliezer.ruleengine: DEBUG
+    # Keep audit and request-log events visible without raising org.springframework.web or
+    # org.hibernate, which would drown them.
+    com.eliezer.ruleengine.audit: INFO

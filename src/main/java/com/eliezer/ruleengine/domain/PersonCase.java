@@ -1,5 +1,6 @@
 package com.eliezer.ruleengine.domain;
 
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -17,21 +18,35 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
-
+/**
+ * The person&harr;case link. Hard-deleted — an unlink — never soft-deleted (research R1).
+ *
+ * <p>Inherits the audit columns into its own table even though it is keyed by an {@code @EmbeddedId}:
+ * {@link AuditableEntity} is a {@code @MappedSuperclass}, not a hierarchy root, so the composite key
+ * is no obstacle. The creation timestamp is the inherited {@code createdAt}, mapped to the
+ * pre-existing {@code linked_at} column by {@link AttributeOverride}; its response record exposes it
+ * as {@code linkedAt}.
+ */
 @Entity
 @Table(name = "person_case")
+@AttributeOverride(name = "createdAt", column = @Column(name = "linked_at", nullable = false, updatable = false))
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class PersonCase {
+public class PersonCase extends AuditableEntity {
 
     @EmbeddedId
     private PersonCaseId id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    /**
+     * EAGER, not LAZY: Hibernate forbids a lazy to-one whose target is {@code @SoftDelete}
+     * ({@code Person} is) — a proxy cannot know whether the referent is soft-deleted without
+     * hitting the row. {@code PersonCrudService.innerDelete} hard-deletes these links before the
+     * person is soft-deleted, so a link pointing at an invisible person should never exist.
+     */
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @MapsId("personId")
     @JoinColumn(name = "person_id")
     private Person person;
@@ -45,6 +60,8 @@ public class PersonCase {
     @Column(name = "role", nullable = false)
     private PersonRole role;
 
-    @Column(name = "linked_at", nullable = false, insertable = false, updatable = false)
-    private Instant linkedAt;
+    @Override
+    public Object auditId() {
+        return id;
+    }
 }

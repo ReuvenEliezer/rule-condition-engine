@@ -1,0 +1,650 @@
+openapi: 3.1.0
+info:
+  title: rule-condition-engine API
+  version: 0.2.0
+  description: >
+    Uniform record-management contract (persons, cases, rules, person-case links) plus the
+    rule-specific operations that are not CRUD. See crud-contract.md for the rules that every
+    resource path below inherits identically.
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: persons
+  - name: cases
+  - name: rules
+  - name: person-cases
+  - name: rule-operations
+
+paths:
+
+  # ---------------------------------------------------------------- persons
+  /api/v1/persons:
+    get:
+      tags: [persons]
+      summary: List persons (paged; there is no unpaged form)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: One page of person summaries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/PersonVm' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [persons]
+      summary: Create or update a person
+      description: id absent creates (201); id present updates (200).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonVm' }
+      responses:
+        '200': { $ref: '#/components/responses/PersonDetail' }
+        '201': { $ref: '#/components/responses/PersonDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/persons/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [persons]
+      summary: Read one person (detail form — includes nationalId)
+      responses:
+        '200': { $ref: '#/components/responses/PersonDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [persons]
+      summary: Delete a person (soft delete; its person_case links are hard-deleted in the same transaction)
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ------------------------------------------------------------------ cases
+  /api/v1/cases:
+    get:
+      tags: [cases]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: One page of case summaries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/CaseFileVm' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [cases]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CaseFileVm' }
+      responses:
+        '200': { $ref: '#/components/responses/CaseDetail' }
+        '201': { $ref: '#/components/responses/CaseDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/cases/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [cases]
+      summary: Read one case (detail form — first page of linked persons + total)
+      responses:
+        '200': { $ref: '#/components/responses/CaseDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [cases]
+      summary: Not supported — cases are closed, not deleted
+      description: >
+        CaseStatus.CLOSED already expresses retirement. A second "deleted" flag would give the table
+        two notions of "not active" that can disagree. Close a case with
+        POST /api/v1/cases and status=CLOSED.
+      responses:
+        '405': { $ref: '#/components/responses/DeletionNotSupported' }
+
+  # ------------------------------------------------------------------ rules
+  /api/v1/rules:
+    get:
+      tags: [rules]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: One page of rule summaries (conditionTree omitted)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/RuleVm' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    post:
+      tags: [rules]
+      summary: Create or update a rule
+      description: >
+        The condition tree is compiled before persistence; an uncompilable tree is rejected rather
+        than stored. A case already holding a rule rejects a second one (1:1).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RuleVm' }
+      responses:
+        '200': { $ref: '#/components/responses/RuleDetail' }
+        '201': { $ref: '#/components/responses/RuleDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/TooComplex' }
+
+  /api/v1/rules/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [rules]
+      responses:
+        '200': { $ref: '#/components/responses/RuleDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [rules]
+      summary: Not supported — rules are disabled, not deleted
+      description: >
+        Rule.enabled already expresses retirement, and never soft-deleting a rule is what lets
+        rule.case_id keep its plain UNIQUE constraint. Disable a rule with
+        POST /api/v1/rules and enabled=false.
+      responses:
+        '405': { $ref: '#/components/responses/DeletionNotSupported' }
+
+  # ----------------------------------------------------------- person-cases
+  /api/v1/person-cases:
+    get:
+      tags: [person-cases]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: One page of link summaries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/PersonCaseVm' }
+    post:
+      tags: [person-cases]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonCaseVm' }
+      responses:
+        '200': { $ref: '#/components/responses/PersonCaseDetail' }
+        '201': { $ref: '#/components/responses/PersonCaseDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/person-cases/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Composite identifier, "<personUuid>:<caseUuid>"
+        schema:
+          type: string
+          pattern: '^[0-9a-fA-F-]{36}:[0-9a-fA-F-]{36}$'
+        example: 3f1b...:9c22...
+    get:
+      tags: [person-cases]
+      responses:
+        '200': { $ref: '#/components/responses/PersonCaseDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [person-cases]
+      summary: Unlink (hard delete — links carry no audit value worth retaining)
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ----------------------------------------------- audit (read-only)
+  /api/v1/audit-entries:
+    get:
+      tags: [audit]
+      summary: Audit history (paged; read-only — entries are immutable, FR-030)
+      description: >
+        Not a CrudController resource. Audit entries are derived history, not a managed record type,
+        so there is no save and no delete. Omit the filters for the cross-record feed.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+        - name: recordType
+          in: query
+          required: false
+          schema: { type: string }
+          example: person
+        - name: recordId
+          in: query
+          required: false
+          description: For a composite-keyed record, the same "<uuid>:<uuid>" form the CRUD path uses.
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page of audit entries, newest first
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditEntryVm' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  # -------------------------------------------- rule-specific (not CRUD)
+  /api/v1/rules/{ruleId}/condition:
+    put:
+      tags: [rule-operations]
+      summary: Replace a rule's condition tree
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreviewRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/RuleDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/TooComplex' }
+
+  /api/v1/rules/{ruleId}/matches:
+    get:
+      tags: [rule-operations]
+      summary: Evaluate a stored rule
+      description: >
+        Returns person SUMMARY forms — nationalId is structurally absent from match results.
+        Soft-deleted persons are excluded automatically by the entity-level soft-delete filter.
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: scope
+          in: query
+          schema: { type: string, enum: [GLOBAL, CASE_SCOPED], default: GLOBAL }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { $ref: '#/components/responses/PersonSummaryPage' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/rules/preview:
+    post:
+      tags: [rule-operations]
+      summary: Dry-run an unsaved condition tree
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreviewRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/PersonSummaryPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '413': { $ref: '#/components/responses/TooComplex' }
+
+  /api/v1/rules/fields:
+    get:
+      tags: [rule-operations]
+      summary: Queryable field names for the rule-builder UI
+      responses:
+        '200':
+          description: Field names
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
+
+components:
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      description: Zero-based. Negative values clamp to 0.
+      schema: { type: integer, default: 0, minimum: 0 }
+    Size:
+      name: size
+      in: query
+      description: >
+        Clamped server-side to [1, rule-engine.max-page-size]. An oversized request is silently
+        clamped, never rejected. Omitted means rule-engine.default-page-size.
+      schema: { type: integer, default: 50, minimum: 1, maximum: 500 }
+    Sort:
+      name: sort
+      in: query
+      description: >
+        "field" or "field,desc". Only fields the resource declares are accepted; anything else is
+        400 INVALID_SORT_FIELD. The record identifier is always appended as a tiebreaker so paging
+        is totally ordered.
+      schema: { type: string }
+      example: name,desc
+
+  responses:
+    PersonDetail:
+      description: Person, detail form (includes nationalId and audit metadata)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PersonVm' }
+    CaseDetail:
+      description: Case, detail form (first page of linked persons + total)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/CaseFileVm' }
+    RuleDetail:
+      description: Rule, detail form (includes the condition tree)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/RuleVm' }
+    PersonCaseDetail:
+      description: Link, detail form
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PersonCaseVm' }
+    PersonSummaryPage:
+      description: >
+        One page of person SUMMARY responses. nationalId is not declared on that type, so no list
+        path and no match path can emit it.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PageResponse'
+              - type: object
+                properties:
+                  content:
+                    type: array
+                    items: { $ref: '#/components/schemas/PersonVm' }
+    BadRequest:
+      description: VALIDATION_FAILED | INVALID_SORT_FIELD | MALFORMED_REQUEST | VERSION_REQUIRED | INVALID_ARGUMENT | UNKNOWN_FIELD | INCOMPATIBLE_OPERATOR | INVALID_RULE
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: RECORD_NOT_FOUND | RULE_NOT_FOUND (a soft-deleted person is not found)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    DeletionNotSupported:
+      description: DELETION_NOT_SUPPORTED. The message names the retirement mechanism for this record type.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: CONCURRENT_MODIFICATION (stale version) | CONSTRAINT_VIOLATION
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    TooComplex:
+      description: RULE_TREE_TOO_COMPLEX
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    AuditRecordingFailed:
+      description: >
+        AUDIT_RECORDING_FAILED. The audit entry could not be persisted, so the business change was
+        rolled back with it (FR-027 as amended) - there is no state in which a record changed and no
+        audit entry exists.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+
+    ResourceVm:
+      type: object
+      description: >
+        Base envelope for every UI object. One record per entity, travelling in both directions.
+        Depth is a Jackson view, not a separate type: fields marked "DETAIL ONLY" below carry
+        @JsonView(Vms.Detail) and are serialised only on single-record responses. Fields marked
+        readOnly carry @JsonProperty(access = READ_ONLY) - emitted, but ignored on deserialisation,
+        so a client cannot forge them (FR-023).
+      properties:
+        id:
+          type: [string, 'null']
+          description: Absent or null creates; present updates. The FR-003 discriminator.
+        version:
+          type: integer
+          format: int32
+          default: 0
+          description: >
+            Optimistic-lock token from a prior read. Omitting it means 0 - correct on create, and
+            safely stale on update. A value that does not match the stored one gives 409.
+        type:
+          type: string
+          readOnly: true
+          description: Discriminator naming the record type (FR-014).
+      required: [version]
+
+    PersonVm:
+      allOf:
+        - $ref: '#/components/schemas/ResourceVm'
+        - type: object
+          properties:
+            id: { type: [string, 'null'], format: uuid }
+            type: { const: person, readOnly: true }
+            name: { type: string, maxLength: 200 }
+            age: { type: integer, minimum: 0, maximum: 149 }
+            city: { type: [string, 'null'] }
+            risk: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+            nationalId:
+              type: string
+              description: >
+                DETAIL ONLY. @JsonView(Vms.Detail) keeps it off every list response and every
+                rule-match result - screening should not widen exposure of a direct identifier.
+            caseLinks:
+              type: array
+              readOnly: true
+              description: DETAIL ONLY, first page.
+              items: { $ref: '#/components/schemas/PersonCaseVm' }
+            caseLinkCount:
+              type: integer
+              format: int64
+              readOnly: true
+              description: DETAIL ONLY. Total links, so the client knows what the page is a page of.
+            createdAt: { type: string, format: date-time, readOnly: true, description: DETAIL ONLY. }
+            createdBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+            updatedAt: { type: string, format: date-time, readOnly: true, description: DETAIL ONLY. }
+            updatedBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+          required: [name, age, risk, nationalId]
+
+    CaseFileVm:
+      allOf:
+        - $ref: '#/components/schemas/ResourceVm'
+        - type: object
+          properties:
+            id: { type: [string, 'null'], format: uuid }
+            type: { const: case, readOnly: true }
+            title: { type: string, maxLength: 200 }
+            status:
+              type: string
+              enum: [OPEN, UNDER_REVIEW, CLOSED]
+              description: CLOSED is how a case is retired; there is no delete.
+            openedAt: { type: string, format: date-time, readOnly: true }
+            ruleId: { type: [string, 'null'], format: uuid, readOnly: true, description: DETAIL ONLY. }
+            linkedPersons:
+              type: array
+              readOnly: true
+              description: >
+                DETAIL ONLY, and only the FIRST PAGE. A case accumulates an unbounded number of
+                links, so the relation is never fully materialised in a response.
+              items: { $ref: '#/components/schemas/PersonVm' }
+            linkedPersonCount:
+              type: integer
+              format: int64
+              readOnly: true
+              description: DETAIL ONLY. Total links, so the client knows what the page is a page of.
+            createdBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+            updatedAt: { type: string, format: date-time, readOnly: true, description: DETAIL ONLY. }
+            updatedBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+          required: [title, status]
+
+    RuleVm:
+      allOf:
+        - $ref: '#/components/schemas/ResourceVm'
+        - type: object
+          properties:
+            id: { type: [string, 'null'], format: uuid }
+            type: { const: rule, readOnly: true }
+            caseId: { type: string, format: uuid, description: 'Required on create. rule:case is 1:1.' }
+            name: { type: string, maxLength: 200 }
+            enabled:
+              type: boolean
+              default: true
+              description: false is how a rule is retired; there is no delete.
+            condition:
+              description: DETAIL ONLY - a condition AST is large and useless in a list.
+              $ref: '#/components/schemas/RuleNode'
+            createdAt: { type: string, format: date-time, readOnly: true, description: DETAIL ONLY. }
+            createdBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+            updatedAt: { type: string, format: date-time, readOnly: true }
+            updatedBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+          required: [caseId, name, condition]
+
+    PersonCaseVm:
+      allOf:
+        - $ref: '#/components/schemas/ResourceVm'
+        - type: object
+          properties:
+            id:
+              type: [string, 'null']
+              description: 'Composite: "<personUuid>:<caseUuid>".'
+            type: { const: person-case, readOnly: true }
+            personId: { type: string, format: uuid }
+            caseId: { type: string, format: uuid }
+            role: { type: string, enum: [SUBJECT, ASSOCIATE, WITNESS] }
+            linkedAt: { type: string, format: date-time, readOnly: true }
+            person:
+              readOnly: true
+              description: DETAIL ONLY, summary form.
+              $ref: '#/components/schemas/PersonVm'
+            caseFile:
+              readOnly: true
+              description: DETAIL ONLY, summary form.
+              $ref: '#/components/schemas/CaseFileVm'
+            createdBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+            updatedAt: { type: string, format: date-time, readOnly: true, description: DETAIL ONLY. }
+            updatedBy: { type: string, readOnly: true, description: DETAIL ONLY. }
+          required: [personId, caseId, role]
+
+    AuditEntryVm:
+      type: object
+      description: One lifecycle change. Immutable; sensitive field values are redacted (FR-025).
+      properties:
+        id: { type: string, format: uuid }
+        recordType: { type: string, example: person }
+        recordId: { type: string, example: 3f1b8c2a-0000-4000-8000-000000000000 }
+        operation: { type: string, enum: [CREATE, UPDATE, DELETE] }
+        actor: { type: string, example: system }
+        occurredAt: { type: string, format: date-time }
+        entityVersion:
+          type: integer
+          description: The @Version the change produced — disambiguates replay order when two entries share a timestamp.
+        changes:
+          type: object
+          nullable: true
+          description: >
+            CREATE carries initial values as {field: {to}}; UPDATE carries only changed fields as
+            {field: {from, to}}; DELETE is null. A sensitive field appears with both values as "***"
+            so the reviewer learns it changed, never what it was.
+          additionalProperties:
+            type: object
+            properties:
+              from: {}
+              to: {}
+          example:
+            risk: { from: LOW, to: HIGH }
+            nationalId: { from: '***', to: '***' }
+
+    PageResponse:
+      type: object
+      properties:
+        content: { type: array, items: {} }
+        page: { type: integer }
+        size:
+          type: integer
+          description: The EFFECTIVE size after clamping, not what was requested.
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+      required: [content, page, size, totalElements, totalPages]
+
+    PreviewRequest:
+      type: object
+      description: Operation payload, not a record representation - deliberately not a Vm.
+      properties:
+        condition: { $ref: '#/components/schemas/RuleNode' }
+      required: [condition]
+
+    RuleNode:
+      type: object
+      description: >
+        Polymorphic condition AST - GroupNode | ConditionNode | UnaryConditionNode, discriminated by
+        a "type" property. Defined by the existing rule.model classes; unchanged by this feature.
+      additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        timestamp: { type: string, format: date-time }
+      required: [code, message, timestamp]

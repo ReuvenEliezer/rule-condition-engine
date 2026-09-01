@@ -19,9 +19,15 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Retired via {@code enabled = false}, never deleted (research R1): {@code DELETE /api/v1/rules/{id}}
+ * returns 405 naming that alternative. No {@code @SoftDelete}, so {@code rule.case_id UNIQUE} is
+ * never consumed by a retained-but-hidden row and stays a plain inline {@code UNIQUE}.
+ *
+ * <p>{@code createdAt}/{@code updatedAt} are inherited from {@link AuditableEntity}.
+ */
 @Entity
 @Table(name = "rule")
 @Getter
@@ -29,7 +35,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Rule {
+public class Rule extends AuditableEntity {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
@@ -56,9 +62,8 @@ public class Rule {
     @Column(name = "condition_tree", nullable = false, columnDefinition = "jsonb")
     private RuleNode conditionTree;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    @Override
+    public Object auditId() {
+        return id;
+    }
 }

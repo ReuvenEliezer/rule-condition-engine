@@ -1,6 +1,7 @@
 package com.eliezer.ruleengine.service;
 
 import com.eliezer.ruleengine.api.dto.MatchScope;
+import com.eliezer.ruleengine.api.dto.PersonVm;
 import com.eliezer.ruleengine.domain.Person;
 import com.eliezer.ruleengine.domain.Rule;
 import com.eliezer.ruleengine.exception.RuleNotFoundException;
@@ -9,6 +10,7 @@ import com.eliezer.ruleengine.repository.RuleRepository;
 import com.eliezer.ruleengine.rule.compiler.PersonFieldRegistry;
 import com.eliezer.ruleengine.rule.compiler.RuleCompiler;
 import com.eliezer.ruleengine.rule.model.RuleNode;
+import com.eliezer.ruleengine.service.convert.PersonVmMapper;
 import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ public class RuleEvaluationService {
     private final PersonRepository personRepository;
     private final PersonFieldRegistry personFieldRegistry;
     private final RuleCompiler ruleCompiler;
+    private final PersonVmMapper personVmMapper;
 
     /**
      * Evaluates a stored rule.
@@ -38,7 +41,7 @@ public class RuleEvaluationService {
      * usually wants the count plus a first page, not the whole set.
      */
     @Transactional(readOnly = true)
-    public Page<Person> evaluate(UUID ruleId, MatchScope scope, Pageable pageable) {
+    public Page<PersonVm> evaluate(UUID ruleId, MatchScope scope, Pageable pageable) {
         Rule rule = ruleRepository.findWithCaseById(ruleId)
                 .orElseThrow(() -> new RuleNotFoundException(ruleId));
 
@@ -47,13 +50,14 @@ public class RuleEvaluationService {
 
         Page<Person> matches = personRepository.findAll(spec, pageable);
         log.debug("Rule {} ({}) matched {} persons", ruleId, scope, matches.getTotalElements());
-        return matches;
+        return matches.map(personVmMapper::toVm);
     }
 
     /** Evaluates an unsaved tree — the rule-builder dry run. */
     @Transactional(readOnly = true)
-    public Page<Person> preview(RuleNode condition, Pageable pageable) {
-        return personRepository.findAll(ruleCompiler.compile(personFieldRegistry, condition), pageable);
+    public Page<PersonVm> preview(RuleNode condition, Pageable pageable) {
+        return personRepository.findAll(ruleCompiler.compile(personFieldRegistry, condition), pageable)
+                .map(personVmMapper::toVm);
     }
 
     private Specification<Person> specificationFor(RuleNode condition, MatchScope scope, UUID caseId) {
