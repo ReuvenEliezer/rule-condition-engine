@@ -1,0 +1,62 @@
+version: 2
+updates:
+  # Single-module reactor: the root pom drives the whole build, so directory "/"
+  # covers everything. Do not add one entry per package.
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Jerusalem"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*:*"
+        update-types: [ "minor", "patch" ]
+      testing:
+        patterns:
+          - "org.junit*:*"
+          - "org.mockito:*"
+          - "org.assertj:*"
+          - "org.testcontainers*:*"
+          - "org.awaitility:*"
+        update-types: [ "minor", "patch" ]
+      build-plugins:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.jacoco:*"
+          - "org.pitest:*"
+        update-types: [ "minor", "patch" ]
+      # Catch-all — declared last, since Dependabot assigns a dependency to the
+      # first matching group.
+      remaining:
+        patterns: [ "*" ]
+        update-types: [ "minor", "patch" ]
+
+  # Pinned action SHAs (dorny/test-reporter) are frozen without this. Mandatory
+  # wherever actions are pinned.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns: [ "*" ]
+
+  # docker-compose.yml at the repo root pins postgres:18.4-alpine.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build(deps)"
