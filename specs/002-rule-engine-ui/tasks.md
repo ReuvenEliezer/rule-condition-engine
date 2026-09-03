@@ -255,17 +255,17 @@ changes, and the sensitive field masked.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T092 [P] Write the exhaustive failure-map test in `ui/src/api/errors.test.ts` asserting all sixteen codes render a distinct, specific message and that no path produces a generic "something went wrong" (FR-039, SC-003)
-- [ ] T093 [P] Write the transport-failure test in `ui/src/api/client.test.ts` asserting an unreachable service is presented distinctly from a refusal and from an empty result, with a retry that preserves input (FR-040)
-- [ ] T094 [P] Write the no-persistence test in `ui/src/api/queries.test.ts` asserting no `localStorage`, `sessionStorage` or IndexedDB write occurs anywhere, and that `nationalId` is absent from the query cache after the person detail view unmounts (FR-043, SC-004)
-- [ ] T095 [P] Write the request-supersession test in `ui/src/api/queries.test.ts`: with two requests outstanding for the same view and the **earlier one resolving last**, assert the later result renders and the earlier is discarded. Cover both shapes — a preview refined twice, and a page changed while the previous page loads (FR-042, spec Edge Cases)
-- [ ] T096 Audit every view in `ui/src/` for the empty-state requirement — no persons, no cases, no matches, no audit entries — each carrying its next useful action (FR-041, SC-007)
-- [ ] T097 Complete a keyboard-only pass over `ui/src/rules/` confirming every builder action is reachable and completable without a pointer, and that results, saves and validation failures are announced (FR-044, SC-008)
-- [ ] T098 [P] Document the `ui/` module in `ui/README.md` — dev proxy, the `-Pui` packaging profile, and **why the field catalog is a stopgap** with a pointer to `contracts/field-catalog.md` §4, so the next reader does not rediscover the drift risk
-- [ ] T099 [P] Add the frontend to `README.md` "Known gaps" — the client field catalog duplicates server truth, and a field retyped under an unchanged name is undetectable by the start-up check
+- [X] T092 [P] Write the exhaustive failure-map test in `ui/src/api/errors.test.ts` asserting all sixteen codes render a distinct, specific message and that no path produces a generic "something went wrong" (FR-039, SC-003)
+- [X] T093 [P] Write the transport-failure test in `ui/src/api/client.test.ts` asserting an unreachable service is presented distinctly from a refusal and from an empty result, with a retry that preserves input (FR-040)
+- [X] T094 [P] Write the no-persistence test in `ui/src/api/queries.test.ts` asserting no `localStorage`, `sessionStorage` or IndexedDB write occurs anywhere, and that `nationalId` is absent from the query cache after the person detail view unmounts (FR-043, SC-004)
+- [X] T095 [P] Write the request-supersession test in `ui/src/api/queries.test.ts`: with two requests outstanding for the same view and the **earlier one resolving last**, assert the later result renders and the earlier is discarded. Cover both shapes — a preview refined twice, and a page changed while the previous page loads (FR-042, spec Edge Cases)
+- [X] T096 Audit every view in `ui/src/` for the empty-state requirement — no persons, no cases, no matches, no audit entries — each carrying its next useful action (FR-041, SC-007)
+- [X] T097 Complete a keyboard-only pass over `ui/src/rules/` confirming every builder action is reachable and completable without a pointer, and that results, saves and validation failures are announced (FR-044, SC-008)
+- [X] T098 [P] Document the `ui/` module in `ui/README.md` — dev proxy, the `-Pui` packaging profile, and **why the field catalog is a stopgap** with a pointer to `contracts/field-catalog.md` §4, so the next reader does not rediscover the drift risk
+- [X] T099 [P] Add the frontend to `README.md` "Known gaps" — the client field catalog duplicates server truth, and a field retyped under an unchanged name is undetectable by the start-up check
 - [ ] T100 Run the full quickstart in `specs/002-rule-engine-ui/quickstart.md`, scenarios 1–7, against a running service and seeded data
 - [ ] T101 Verify the packaged jar per `quickstart.md` § Producing the deployable artifact: a deep link returns `200` **and** an unknown API path returns a JSON `404 RECORD_NOT_FOUND` rather than HTML (research R3)
-- [ ] T102 Confirm the definition of done — `~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn verify` passes with the **backend suite unchanged** (this feature alters no API behaviour), and `npm run typecheck && npm run lint && npx vitest run` pass in `ui/`
+- [X] T102 Confirm the definition of done — `~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn verify` passes with the **backend suite unchanged** (this feature alters no API behaviour), and `npm run typecheck && npm run lint && npx vitest run` pass in `ui/`
 
 ---
 

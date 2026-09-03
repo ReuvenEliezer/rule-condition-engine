@@ -179,3 +179,10 @@ Compose credentials are dev-only defaults and are not appropriate for any shared
   already have joined `caseLinks` for a `case.*` field and a second independent join would change the
   predicate's meaning. If `case.*` fields are dropped from the registry, switch to `EXISTS`.
 - **No rule versioning.** Editing a tree overwrites it, so a past evaluation cannot be reproduced.
+- **The browser client's field catalog duplicates server truth.** `GET /api/v1/rules/fields`
+  publishes names only, so `ui/src/rules/catalog.ts` holds a hand-derived copy of each field's type,
+  operators and enum values. A start-up set-equality check turns an added or removed field into a
+  blocking configuration error, but **a field retyped under an unchanged name is undetectable** by
+  that check. The fix is to publish the metadata (type, operators, enum values) from
+  `RuleController.queryableFields()`. See [`ui/README.md`](ui/README.md) and
+  [`specs/002-rule-engine-ui/contracts/field-catalog.md`](specs/002-rule-engine-ui/contracts/field-catalog.md).
