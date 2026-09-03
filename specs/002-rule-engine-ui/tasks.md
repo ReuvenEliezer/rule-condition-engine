@@ -235,19 +235,19 @@ changes, and the sensitive field masked.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T082 [P] [US5] Write the change-rendering test in `ui/src/audit/AuditChanges.test.tsx` covering all three operations per `data-model.md` §1.6 — update shows from/to, create shows initial values with no implied previous, and **delete shows an explicit statement rather than an empty change list** (FR-036)
-- [ ] T083 [P] [US5] Write the masking test in `ui/src/audit/AuditChanges.test.tsx` asserting a `@Sensitive` field renders as changed with both values masked and **no reveal affordance exists anywhere in the tree** (FR-037)
+- [X] T082 [P] [US5] Write the change-rendering test in `ui/src/audit/AuditChanges.test.tsx` covering all three operations per `data-model.md` §1.6 — update shows from/to, create shows initial values with no implied previous, and **delete shows an explicit statement rather than an empty change list** (FR-036)
+- [X] T083 [P] [US5] Write the masking test in `ui/src/audit/AuditChanges.test.tsx` asserting a `@Sensitive` field renders as changed with both values masked and **no reveal affordance exists anywhere in the tree** (FR-037)
 
 ### Implementation for User Story 5
 
-- [ ] T084 [US5] Build the trail listing in `ui/src/audit/AuditTrailView.tsx` over `GET /api/v1/audit-entries` — paged, newest first, showing record type, identity, operation, actor, time and resulting version, with **no create, edit or delete affordance anywhere** (FR-034)
-- [ ] T085 [US5] Build the filters in `ui/src/audit/AuditFilters.tsx` with the record-identity control **disabled until a record type is chosen**, so the combination the server silently ignores cannot be sent (FR-035, contract §3)
-- [ ] T086 [US5] Render field-level changes in `ui/src/audit/AuditChanges.tsx` per operation, treating `changes === null` on a delete as the explicit "deletions record no field-level detail" case (FR-036)
-- [ ] T087 [US5] Render a masked field in `ui/src/audit/AuditChanges.tsx` as changed-but-hidden, offering no route to reveal the values (FR-037)
-- [ ] T088 [US5] Restrict trail sorting in `ui/src/audit/AuditTrailView.tsx` to `occurredAt`, `recordType`, `operation` (FR-038, contract §1.2)
-- [ ] T089 [US5] State plainly in `ui/src/audit/AuditTrailView.tsx` that `actor` is always `system` until authentication exists, so the column is not read as information it does not carry (FR-045, spec assumptions)
-- [ ] T090 [US5] Add a "history for this record" action to `ui/src/records/RecordEditor.tsx` and `ui/src/cases/CaseWorkspace.tsx` deep-linking to the trail filtered by that type and id, reachable in at most three interactions (SC-009)
-- [ ] T091 [P] [US5] Capture MSW handlers for `/audit-entries` — create, update with a masked field, and delete entries — into `ui/src/test/handlers/audit.ts`
+- [X] T084 [US5] Build the trail listing in `ui/src/audit/AuditTrailView.tsx` over `GET /api/v1/audit-entries` — paged, newest first, showing record type, identity, operation, actor, time and resulting version, with **no create, edit or delete affordance anywhere** (FR-034)
+- [X] T085 [US5] Build the filters in `ui/src/audit/AuditFilters.tsx` with the record-identity control **disabled until a record type is chosen**, so the combination the server silently ignores cannot be sent (FR-035, contract §3)
+- [X] T086 [US5] Render field-level changes in `ui/src/audit/AuditChanges.tsx` per operation, treating `changes === null` on a delete as the explicit "deletions record no field-level detail" case (FR-036)
+- [X] T087 [US5] Render a masked field in `ui/src/audit/AuditChanges.tsx` as changed-but-hidden, offering no route to reveal the values (FR-037)
+- [X] T088 [US5] Restrict trail sorting in `ui/src/audit/AuditTrailView.tsx` to `occurredAt`, `recordType`, `operation` (FR-038, contract §1.2)
+- [X] T089 [US5] State plainly in `ui/src/audit/AuditTrailView.tsx` that `actor` is always `system` until authentication exists, so the column is not read as information it does not carry (FR-045, spec assumptions)
+- [X] T090 [US5] Add a "history for this record" action to `ui/src/records/RecordEditor.tsx` and `ui/src/cases/CaseWorkspace.tsx` deep-linking to the trail filtered by that type and id, reachable in at most three interactions (SC-009)
+- [X] T091 [P] [US5] Capture MSW handlers for `/audit-entries` — create, update with a masked field, and delete entries — into `ui/src/test/handlers/audit.ts`
 
 **Checkpoint**: All five user stories are independently functional.
 
