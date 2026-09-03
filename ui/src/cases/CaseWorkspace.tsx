@@ -13,6 +13,7 @@ import { useAnnounce } from '../ui/LiveRegion';
 import { LinkedPersons } from './LinkedPersons';
 import { MatchesView } from '../rules/MatchesView';
 import { HistoryLink } from '../audit/HistoryLink';
+import { formatInstant } from '../lib/format';
 
 export function CaseWorkspace({ caseId }: { caseId: string }) {
   const announce = useAnnounce();
@@ -52,7 +53,7 @@ export function CaseWorkspace({ caseId }: { caseId: string }) {
     <section aria-labelledby="case-heading">
       <h2 id="case-heading">{c.title}</h2>
       <p>
-        Status: <strong>{c.status}</strong> · Opened {c.openedAt}
+        Status: <strong>{c.status}</strong> · Opened {formatInstant(c.openedAt)}
         {c.status === 'CLOSED' && ' · This case is closed but stays fully readable.'}
       </p>
 

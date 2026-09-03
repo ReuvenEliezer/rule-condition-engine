@@ -3,6 +3,7 @@
 
 import type { AnySummary, CaseSummary, PersonCaseSummary, PersonSummary, RuleSummary } from '../../api/types';
 import type { RecordsResource, ResourceConfig } from '../resourceConfig';
+import { formatInstant } from '../../lib/format';
 
 const asPerson = (r: AnySummary) => r as PersonSummary;
 const asCase = (r: AnySummary) => r as CaseSummary;
@@ -40,7 +41,7 @@ export const CASES_CONFIG: ResourceConfig = {
   columns: [
     { key: 'title', label: 'Title', render: (r) => asCase(r).title },
     { key: 'status', label: 'Status', render: (r) => asCase(r).status },
-    { key: 'openedAt', label: 'Opened', render: (r) => asCase(r).openedAt },
+    { key: 'openedAt', label: 'Opened', render: (r) => formatInstant(asCase(r).openedAt) },
   ],
   writableFields: [
     { name: 'title', label: 'Title', kind: 'text', required: true, maxLength: 200 },

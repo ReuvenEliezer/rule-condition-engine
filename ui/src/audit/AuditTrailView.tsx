@@ -20,6 +20,7 @@ import { FailureBanner } from '../ui/FailureBanner';
 import type { RecordType } from '../api/types';
 import { AuditFilters } from './AuditFilters';
 import { AuditChanges } from './AuditChanges';
+import { formatInstant } from '../lib/format';
 
 const VALID_RECORD_TYPES = new Set<RecordType>(['person', 'case', 'rule', 'person-case']);
 
@@ -111,7 +112,7 @@ export function AuditTrailView() {
                 const rowId = `${e.recordType}:${e.recordId}:${e.occurredAt}`;
                 return (
                   <tr key={rowId}>
-                    <td>{e.occurredAt}</td>
+                    <td className="whitespace-nowrap">{formatInstant(e.occurredAt)}</td>
                     <td>{e.recordType}</td>
                     <td>{e.recordId}</td>
                     <td>{e.operation}</td>

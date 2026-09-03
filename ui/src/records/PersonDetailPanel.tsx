@@ -13,6 +13,7 @@ import { persons } from '../api/resources';
 import { qk, PERSON_DETAIL_QUERY_OPTIONS } from '../api/queries';
 import { ApiFailure } from '../api/client';
 import { FailureBanner } from '../ui/FailureBanner';
+import { formatInstant } from '../lib/format';
 
 export type PersonDetailPanelProps = {
   personId: string;
@@ -65,7 +66,7 @@ export function PersonDetailPanel({ personId, onClose }: PersonDetailPanelProps)
           </dd>
           <dt>Created</dt>
           <dd>
-            {query.data.createdAt} by {query.data.createdBy}
+            {formatInstant(query.data.createdAt)} by {query.data.createdBy}
           </dd>
         </dl>
       )}
