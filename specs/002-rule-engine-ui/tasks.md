@@ -149,22 +149,22 @@ case, then re-run case-scoped and confirm the newly linked person is included.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T046 [P] [US2] Write the exposure test in `ui/src/rules/MatchesView.test.tsx` asserting a match row renders no `nationalId` and offers no affordance implying it is available at that depth (FR-016, SC-004)
-- [ ] T047 [P] [US2] Write the scope test in `ui/src/rules/MatchesView.test.tsx` asserting the run action is unavailable until a scope is chosen, and that the scope shown beside results is the one sent (FR-014)
+- [X] T046 [P] [US2] Write the exposure test in `ui/src/rules/MatchesView.test.tsx` asserting a match row renders no `nationalId` and offers no affordance implying it is available at that depth (FR-016, SC-004)
+- [X] T047 [P] [US2] Write the scope test in `ui/src/rules/MatchesView.test.tsx` asserting the run action is unavailable until a scope is chosen, and that the scope shown beside results is the one sent (FR-014)
 
 ### Implementation for User Story 2
 
-- [ ] T048 [US2] Build the scope selector in `ui/src/rules/ScopeSelector.tsx` opening **unselected** with the run action disabled, offering `GLOBAL` and `CASE_SCOPED` with each one's meaning stated (FR-014)
-- [ ] T049 [US2] Build the matches view in `ui/src/rules/MatchesView.tsx` over `GET /api/v1/rules/{ruleId}/matches`, always sending `scope` explicitly, displaying it beside the results, and showing the total from `PageResponse.totalElements` (FR-014, FR-015)
-- [ ] T050 [US2] Wire paging in `ui/src/rules/MatchesView.tsx` through the T021 pager, **never fetching a second page to render or count** anything (FR-015, SC-006)
-- [ ] T051 [US2] Render match rows in `ui/src/rules/MatchRow.tsx` from `PersonSummary` only, typed so `nationalId` is not reachable (FR-016)
-- [ ] T052 [US2] Build the person detail drill-down in `ui/src/records/PersonDetailPanel.tsx` over `GET /api/v1/persons/{id}`, showing `nationalId` here and only here, on a query with `gcTime: 0` so it is dropped on unmount. Show the true `caseLinkCount` and mark the embedded `caseLinks` as a **partial subset** of twenty — the same treatment the case side gets, and subject to the same dead end, since `/person-cases` cannot be filtered by person either (FR-017, FR-043, SC-004, spec Edge Cases, spec dependency #3)
-- [ ] T053 [US2] Build the link form in `ui/src/records/LinkPersonToCase.tsx` posting `{ personId, caseId, role }` to `/api/v1/person-cases` **without an `id`** — the composite id is derived server-side and a client-constructed one that disagrees is a 400 (FR-028, `data-model.md` §1.5)
-- [ ] T054 [US2] Handle the duplicate link in `ui/src/records/LinkPersonToCase.tsx`: a `CONSTRAINT_VIOLATION` on this request means the link already exists, explained in those terms, stating that the existing role was **not** changed (FR-028, contract §5.1)
-- [ ] T055 [US2] Render an empty match result in `ui/src/rules/MatchesView.tsx` as an explicit empty state, visibly distinct from a failure and from a run not yet performed (FR-018, SC-007)
-- [ ] T056 [US2] Handle a non-compiling stored rule in `ui/src/rules/MatchesView.tsx`: `UNKNOWN_FIELD`, `INCOMPATIBLE_OPERATOR` and `INVALID_RULE` from the matches route name the field, operator or value at fault and offer to open the rule for editing — the rule stays openable (FR-019)
-- [ ] T057 [US2] Handle a stale match row in `ui/src/records/PersonDetailPanel.tsx`: a `RECORD_NOT_FOUND` on a soft-deleted person reports not-found rather than rendering a blank record (spec edge case)
-- [ ] T058 [P] [US2] Capture MSW handlers for `/rules/{id}/matches`, `GET /persons/{id}` and `POST /person-cases` into `ui/src/test/handlers/matches.ts`
+- [X] T048 [US2] Build the scope selector in `ui/src/rules/ScopeSelector.tsx` opening **unselected** with the run action disabled, offering `GLOBAL` and `CASE_SCOPED` with each one's meaning stated (FR-014)
+- [X] T049 [US2] Build the matches view in `ui/src/rules/MatchesView.tsx` over `GET /api/v1/rules/{ruleId}/matches`, always sending `scope` explicitly, displaying it beside the results, and showing the total from `PageResponse.totalElements` (FR-014, FR-015)
+- [X] T050 [US2] Wire paging in `ui/src/rules/MatchesView.tsx` through the T021 pager, **never fetching a second page to render or count** anything (FR-015, SC-006)
+- [X] T051 [US2] Render match rows in `ui/src/rules/MatchRow.tsx` from `PersonSummary` only, typed so `nationalId` is not reachable (FR-016)
+- [X] T052 [US2] Build the person detail drill-down in `ui/src/records/PersonDetailPanel.tsx` over `GET /api/v1/persons/{id}`, showing `nationalId` here and only here, on a query with `gcTime: 0` so it is dropped on unmount. Show the true `caseLinkCount` and mark the embedded `caseLinks` as a **partial subset** of twenty — the same treatment the case side gets, and subject to the same dead end, since `/person-cases` cannot be filtered by person either (FR-017, FR-043, SC-004, spec Edge Cases, spec dependency #3)
+- [X] T053 [US2] Build the link form in `ui/src/records/LinkPersonToCase.tsx` posting `{ personId, caseId, role }` to `/api/v1/person-cases` **without an `id`** — the composite id is derived server-side and a client-constructed one that disagrees is a 400 (FR-028, `data-model.md` §1.5)
+- [X] T054 [US2] Handle the duplicate link in `ui/src/records/LinkPersonToCase.tsx`: a `CONSTRAINT_VIOLATION` on this request means the link already exists, explained in those terms, stating that the existing role was **not** changed (FR-028, contract §5.1)
+- [X] T055 [US2] Render an empty match result in `ui/src/rules/MatchesView.tsx` as an explicit empty state, visibly distinct from a failure and from a run not yet performed (FR-018, SC-007)
+- [X] T056 [US2] Handle a non-compiling stored rule in `ui/src/rules/MatchesView.tsx`: `UNKNOWN_FIELD`, `INCOMPATIBLE_OPERATOR` and `INVALID_RULE` from the matches route name the field, operator or value at fault and offer to open the rule for editing — the rule stays openable (FR-019)
+- [X] T057 [US2] Handle a stale match row in `ui/src/records/PersonDetailPanel.tsx`: a `RECORD_NOT_FOUND` on a soft-deleted person reports not-found rather than rendering a blank record (spec edge case)
+- [X] T058 [P] [US2] Capture MSW handlers for `/rules/{id}/matches`, `GET /persons/{id}` and `POST /person-cases` into `ui/src/test/handlers/matches.ts`
 
 **Checkpoint**: Rules can be authored *and* run, and matches turned into case work. US1 + US2 are a coherent deliverable.
 
