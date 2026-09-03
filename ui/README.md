@@ -40,6 +40,19 @@ build and the CI Java job need no Node at all. `SpaForwardingConfig` forwards cl
 `/index.html` while **excluding `/api/**`** — a catch-all would render API 404s as HTML and defeat
 the failure vocabulary.
 
+## Design system
+
+Tailwind CSS v4 (via `@tailwindcss/vite`, no config file) with tokens in `src/styles.css`
+(`@theme`) — slate neutrals, an indigo `brand` ramp. Primitives live in `src/ui/components/`
+(`Button`, `Select`, `Input`, `Card`, `Badge`) and shared layout in `src/ui/` (`PageHeader`,
+`EmptyState`, `Pager`, `FailureBanner`). `src/lib/cn.ts` is the `clsx` + `tailwind-merge` helper.
+
+`Select` is a **styled native `<select>`**, never a JS listbox — research R9 keeps field/operator
+choices keyboard- and screen-reader-correct. Icons are `lucide-react`. Dark mode follows
+`prefers-color-scheme`. Views not yet migrated to the primitives (the rule builder, links, preview)
+are kept coherent by a small `@layer components` block in `styles.css` that styles only *unclassed*
+native elements under `<main>`.
+
 ## Architecture notes
 
 - **`src/api/`** — the typed client. `client.ts` resolves the base URL once

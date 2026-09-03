@@ -3,9 +3,13 @@
 
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { RESOURCE_CONFIGS } from './configs';
 import { RecordList } from './RecordList';
 import { RecordEditor } from './RecordEditor';
+import { PageHeader } from '../ui/PageHeader';
+import { Button } from '../ui/components/Button';
+import { Card } from '../ui/components/Card';
 
 export type RecordsResource = 'persons' | 'cases' | 'rules' | 'person-cases';
 
@@ -16,29 +20,36 @@ export function RecordsPage({ resource }: { resource: RecordsResource }) {
     routeParams.id ? { id: routeParams.id } : null,
   );
 
+  if (!selected) {
+    return (
+      <RecordList
+        config={config}
+        onOpen={(id) => setSelected({ id })}
+        onCreate={config.creatable ? () => setSelected({ id: null }) : undefined}
+      />
+    );
+  }
+
+  const singular = resource.replace(/s$/, '').replace(/-/g, ' ');
+
   return (
-    <section>
-      <h2>{config.title}</h2>
-      {selected ? (
-        <div>
-          <button type="button" onClick={() => setSelected(null)}>
-            ← Back to the list
-          </button>
-          <h3>{selected.id === null ? `New ${resource.replace(/s$/, '')}` : `Edit ${resource.replace(/s$/, '')}`}</h3>
-          <RecordEditor
-            config={config}
-            recordId={selected.id}
-            onSaved={(id) => setSelected({ id })}
-            onDeleted={() => setSelected(null)}
-          />
-        </div>
-      ) : (
-        <RecordList
+    <div>
+      <Button variant="ghost" size="sm" className="mb-4 -ml-2" onClick={() => setSelected(null)}>
+        <ArrowLeft className="size-4" aria-hidden />
+        Back to {config.title.toLowerCase()}
+      </Button>
+      <PageHeader
+        eyebrow={config.title}
+        title={selected.id === null ? `New ${singular}` : `Edit ${singular}`}
+      />
+      <Card className="p-6">
+        <RecordEditor
           config={config}
-          onOpen={(id) => setSelected({ id })}
-          onCreate={config.creatable ? () => setSelected({ id: null }) : undefined}
+          recordId={selected.id}
+          onSaved={(id) => setSelected({ id })}
+          onDeleted={() => setSelected(null)}
         />
-      )}
-    </section>
+      </Card>
+    </div>
   );
 }

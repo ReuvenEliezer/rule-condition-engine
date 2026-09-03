@@ -15,6 +15,10 @@ import { qk } from '../api/queries';
 import { ApiFailure } from '../api/client';
 import { FailureBanner } from '../ui/FailureBanner';
 import { useAnnounce } from '../ui/LiveRegion';
+import { Button } from '../ui/components/Button';
+import { Input } from '../ui/components/Input';
+import { Select } from '../ui/components/Select';
+import { cn } from '../lib/cn';
 import type { ResourceConfig, WritableField } from './resourceConfig';
 import { RetireAction } from './RetireAction';
 import { HistoryLink } from '../audit/HistoryLink';
@@ -131,19 +135,28 @@ export function RecordEditor({ config, recordId, onSaved, onDeleted }: RecordEdi
 
   return (
     <form
+      className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
         void save();
       }}
     >
-      {config.writableFields.map((f) => (
-        <FieldInput key={f.name} field={f} value={form[f.name]} error={fieldErrors[f.name]} onChange={setField} />
-      ))}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {config.writableFields.map((f) => (
+          <FieldInput
+            key={f.name}
+            field={f}
+            value={form[f.name]}
+            error={fieldErrors[f.name]}
+            onChange={setField}
+          />
+        ))}
+      </div>
 
       {!creating && query.data && (
-        <fieldset>
-          <legend>Server-owned — not editable</legend>
-          <p>Version: {str(query.data.version)}</p>
+        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+          <p className="mb-1 font-medium uppercase tracking-wide text-slate-400">Server-owned — not editable</p>
+          <p>Version {str(query.data.version)}</p>
           {'createdBy' in query.data && (
             <p>
               Created by {str(query.data.createdBy)} at {str(query.data.createdAt ?? query.data.openedAt)}
@@ -154,30 +167,41 @@ export function RecordEditor({ config, recordId, onSaved, onDeleted }: RecordEdi
               Updated by {str(query.data.updatedBy)} at {str(query.data.updatedAt)}
             </p>
           )}
-        </fieldset>
+        </div>
       )}
 
-      <button type="submit" disabled={saving}>
-        {creating ? 'Create' : 'Save changes'}
-      </button>
+      <div className="flex items-center gap-2">
+        <Button type="submit" variant="primary" disabled={saving}>
+          {saving ? 'Saving…' : creating ? 'Create' : 'Save changes'}
+        </Button>
+      </div>
 
       {conflict && (
-        <div className="failure-banner" role="alert">
-          <p>
-            This record changed in the service since you opened it. Your edits are still here and
-            were not sent.
+        <div
+          role="alert"
+          className="rounded-[var(--radius-card)] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <p className="mb-2">
+            This record changed in the service since you opened it. Your edits are still here and were
+            not sent.
           </p>
-          <button type="button" onClick={() => void reReadNow()}>
+          <Button size="sm" variant="secondary" onClick={() => void reReadNow()}>
             Reload the current record (discards your edits)
-          </button>
+          </Button>
         </div>
       )}
 
       {failure && <FailureBanner failure={failure} />}
 
       {!creating && recordId && (
-        <div>
-          <RetireAction config={config} recordId={recordId} onRetired={onDeleted} currentForm={form} onFormChange={setField} />
+        <div className="flex flex-wrap items-center gap-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <RetireAction
+            config={config}
+            recordId={recordId}
+            onRetired={onDeleted}
+            currentForm={form}
+            onFormChange={setField}
+          />
           <HistoryLink recordType={config.resource} recordId={recordId} />
         </div>
       )}
@@ -204,34 +228,52 @@ function FieldInput({
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? errId : undefined,
   };
+  const isCheckbox = field.kind === 'boolean';
   return (
-    <p>
-      <label htmlFor={field.name}>{field.label}</label>
-      <br />
+    <div className={cn('min-w-0', isCheckbox && 'sm:col-span-2')}>
+      <div className="mb-1.5 flex items-center gap-0.5">
+        <label htmlFor={field.name} className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          {field.label}
+        </label>
+        {field.required && (
+          <span className="text-rose-500" aria-hidden>
+            *
+          </span>
+        )}
+      </div>
       {field.kind === 'enum' ? (
-        <select {...common} value={str(value)} onChange={(e) => onChange(field.name, e.target.value)}>
+        <Select
+          {...common}
+          className="w-full"
+          value={str(value)}
+          onChange={(e) => onChange(field.name, e.target.value)}
+        >
           {(field.options ?? []).map((o) => (
             <option key={o} value={o}>
               {o}
             </option>
           ))}
-        </select>
-      ) : field.kind === 'boolean' ? (
-        <input
-          {...common}
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(field.name, e.target.checked)}
-        />
+        </Select>
+      ) : isCheckbox ? (
+        <label className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <input
+            {...common}
+            type="checkbox"
+            className="size-4 rounded border-slate-300 text-brand-600 focus-visible:ring-brand-500/40 dark:border-slate-600 dark:bg-slate-800"
+            checked={Boolean(value)}
+            onChange={(e) => onChange(field.name, e.target.checked)}
+          />
+          {value ? 'Yes' : 'No'}
+        </label>
       ) : field.kind === 'number' ? (
-        <input
+        <Input
           {...common}
           type="number"
           value={str(value)}
           onChange={(e) => onChange(field.name, e.target.value === '' ? null : Number(e.target.value))}
         />
       ) : (
-        <input
+        <Input
           {...common}
           type="text"
           value={str(value)}
@@ -239,11 +281,11 @@ function FieldInput({
         />
       )}
       {error && (
-        <span className="field-error" id={errId}>
+        <span className="mt-1 block text-xs text-rose-600 dark:text-rose-400" id={errId}>
           {error}
         </span>
       )}
-    </p>
+    </div>
   );
 }
 
