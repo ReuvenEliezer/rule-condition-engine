@@ -2,10 +2,11 @@
 //   - resolve the base URL once (FR-046, research R11)
 //   - parse ErrorResponse bodies into a typed failure
 //   - distinguish a transport failure from a refusal as two different result kinds (FR-040)
-//   - use lossless JSON on the four tree-carrying routes so a BigDecimal operand is not re-rounded
-//     (research R5, FR-013); plain JSON everywhere else
+//
+// Tree-carrying routes need lossless handling of the condition operands; that lives in
+// ruleWire.ts and is applied by the caller through `rawBody` / `decode`, not here — see research
+// R5, FR-013.
 
-import { parse as losslessParse, stringify as losslessStringify } from 'lossless-json';
 import { isErrorCode, type FailureKind } from './errors';
 
 // Resolved in exactly one place. Same-origin deployment makes the correct default a relative path,
@@ -25,23 +26,30 @@ export class ApiFailure extends Error {
 
 export const isApiFailure = (e: unknown): e is ApiFailure => e instanceof ApiFailure;
 
-// The routes whose payload carries a RuleNode. Lossless parse/stringify keeps BigDecimal operands
-// byte-identical (research R5). Matched by method + path suffix.
-const isTreeCarryingRoute = (method: string, path: string): boolean => {
-  const m = method.toUpperCase();
-  if (path === '/rules/preview' && m === 'POST') return true;
-  if (path === '/rules' && (m === 'POST' || m === 'GET')) return true;
-  if (/^\/rules\/[^/]+$/.test(path) && m === 'GET') return true;
-  if (/^\/rules\/[^/]+\/condition$/.test(path) && m === 'PUT') return true;
-  return false;
-};
+// Some test DOM shims (jsdom) install an AbortSignal that the runtime's fetch/Request rejects.
+// Probe once: forward the caller's signal only where fetch will accept it. Aborting is an
+// optimisation — request supersession (FR-042) comes from TanStack Query's key resolution, not
+// from cancelling the transport — so skipping it in that environment loses nothing observable.
+const FETCH_ACCEPTS_SIGNAL: boolean = (() => {
+  try {
+    const probe = new AbortController();
+    new Request('http://localhost/', { signal: probe.signal });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 export type RequestOptions = {
   method?: string;
   /** query params; undefined values are dropped */
   query?: Record<string, string | number | boolean | undefined>;
-  /** request body — serialised with lossless JSON on tree routes, plain JSON otherwise */
+  /** request body serialised with plain JSON */
   body?: unknown;
+  /** pre-serialised request body (tree routes build this via ruleWire.serializeRuleBody) */
+  rawBody?: string;
+  /** custom success-body parser; defaults to JSON.parse. Tree routes pass ruleWire.decodeRuleDetail */
+  decode?: (text: string, contentType: string) => unknown;
   signal?: AbortSignal;
 };
 
@@ -62,21 +70,23 @@ const buildUrl = (path: string, query: RequestOptions['query']): string => {
 
 export async function request<T>(path: string, opts: RequestOptions = {}): Promise<ApiResponse<T>> {
   const method = opts.method ?? 'GET';
-  const lossless = isTreeCarryingRoute(method, path);
   const url = buildUrl(path, opts.query);
 
   const headers: Record<string, string> = {};
   let payload: string | undefined;
-  if (opts.body !== undefined) {
+  if (opts.rawBody !== undefined) {
     headers['Content-Type'] = 'application/json';
-    payload = lossless ? (losslessStringify(opts.body) ?? 'null') : JSON.stringify(opts.body);
+    payload = opts.rawBody;
+  } else if (opts.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    payload = JSON.stringify(opts.body);
   }
 
   let res: Response;
   try {
     const init: RequestInit = { method, headers };
     if (payload !== undefined) init.body = payload;
-    if (opts.signal) init.signal = opts.signal;
+    if (opts.signal && FETCH_ACCEPTS_SIGNAL) init.signal = opts.signal;
     res = await fetch(url, init);
   } catch (cause) {
     // fetch rejects only on a genuine network failure — DNS, connection refused, CORS, offline.
@@ -89,8 +99,9 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
 
   const parseBody = (): unknown => {
     if (text.length === 0) return undefined;
+    if (opts.decode) return opts.decode(text, contentType);
     if (!contentType.includes('json')) return text;
-    return lossless ? losslessParse(text) : (JSON.parse(text) as unknown);
+    return JSON.parse(text) as unknown;
   };
 
   if (!res.ok) {

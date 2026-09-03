@@ -1,6 +1,7 @@
 // Rule-specific endpoints (contract §2). Separate from the uniform CRUD in resources.ts.
 
 import { request } from './client';
+import { decodeRuleDetail, serializeRuleBody } from './ruleWire';
 import type { PageResponse, PersonSummary, RuleDetail } from './types';
 import type { RuleNode } from './tree';
 
@@ -20,7 +21,7 @@ export async function preview(
 ): Promise<PageResponse<PersonSummary>> {
   const res = await request<PageResponse<PersonSummary>>('/rules/preview', {
     method: 'POST',
-    body: { condition },
+    rawBody: serializeRuleBody({ condition }),
     query: { page: params.page, size: params.size },
     ...(signal ? { signal } : {}),
   });
@@ -54,7 +55,8 @@ export async function matches(
 export async function updateCondition(ruleId: string, condition: RuleNode): Promise<RuleDetail> {
   const res = await request<RuleDetail>(`/rules/${encodeURIComponent(ruleId)}/condition`, {
     method: 'PUT',
-    body: { condition },
+    rawBody: serializeRuleBody({ condition }),
+    decode: (text) => decodeRuleDetail(text),
   });
   return res.data;
 }

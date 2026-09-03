@@ -3,6 +3,7 @@
 // (FR-021) — an INVALID_SORT_FIELD reaching a user would be a client defect.
 
 import { request } from './client';
+import { decodeRuleDetail, serializeRuleBody } from './ruleWire';
 import type {
   CaseDetail,
   CaseSummary,
@@ -56,18 +57,36 @@ type Crud<Summary, Detail, Write, K extends string> = {
   remove: (id: string) => Promise<void>;
 };
 
-const crud = <Summary, Detail, Write, K extends string>(path: string): Crud<Summary, Detail, Write, K> => ({
+type TreeCodec<Detail, Write> = {
+  /** custom response parser for Detail (rules carry a condition tree) */
+  decode: (text: string) => Detail;
+  /** custom body serialiser for Write (rules carry a condition tree) */
+  serialize: (body: Write) => string;
+};
+
+const crud = <Summary, Detail, Write, K extends string>(
+  path: string,
+  codec?: TreeCodec<Detail, Write>,
+): Crud<Summary, Detail, Write, K> => ({
   async list(params = {}, signal) {
     const res = await request<PageResponse<Summary>>(path, { query: toQuery(params), ...(signal ? { signal } : {}) });
     return res.data;
   },
   async get(id, signal) {
-    const res = await request<Detail>(`${path}/${encodeURIComponent(id)}`, signal ? { signal } : {});
+    const res = await request<Detail>(`${path}/${encodeURIComponent(id)}`, {
+      ...(signal ? { signal } : {}),
+      ...(codec ? { decode: (text: string) => codec.decode(text) } : {}),
+    });
     return res.data;
   },
   async save(body) {
     const created = !('id' in (body as Record<string, unknown>)) || (body as { id?: string }).id === undefined;
-    const res = await request<Detail>(path, { method: 'POST', body });
+    const res = await request<Detail>(path, {
+      method: 'POST',
+      ...(codec
+        ? { rawBody: codec.serialize(body), decode: (text: string) => codec.decode(text) }
+        : { body }),
+    });
     return { detail: res.data, created: res.status === 201 || created, location: res.location };
   },
   async remove(id) {
@@ -77,5 +96,8 @@ const crud = <Summary, Detail, Write, K extends string>(path: string): Crud<Summ
 
 export const persons = crud<PersonSummary, PersonDetail, PersonWrite, PersonSortKey>('/persons');
 export const cases = crud<CaseSummary, CaseDetail, CaseWrite, CaseSortKey>('/cases');
-export const rules = crud<RuleSummary, RuleDetail, RuleWrite, RuleSortKey>('/rules');
+export const rules = crud<RuleSummary, RuleDetail, RuleWrite, RuleSortKey>('/rules', {
+  decode: decodeRuleDetail,
+  serialize: (body) => serializeRuleBody(body),
+});
 export const personCases = crud<PersonCaseSummary, PersonCaseSummary, PersonCaseWrite, PersonCaseSortKey>('/person-cases');
