@@ -212,13 +212,13 @@ reachable from there.
 reachable without leaving the view — the rule opens for editing, a case-scoped run executes, a linked
 person opens, a new link is created, and the case can be closed.
 
-- [ ] T075 [US4] Build the case workspace in `ui/src/cases/CaseWorkspace.tsx` over `GET /api/v1/cases/{id}`, showing title, status, `openedAt`, the rule if any, and the linked persons together (FR-031)
-- [ ] T076 [US4] Show the true `linkedPersonCount` in `ui/src/cases/LinkedPersons.tsx` and mark the embedded twenty as a **partial subset**, never presenting it as complete. Record inline that the twenty-first is unreachable because `/person-cases` cannot be filtered by case (FR-032, spec dependency #3)
-- [ ] T077 [US4] Offer rule authoring in `ui/src/cases/CaseWorkspace.tsx` when `ruleId` is null, and opening the existing rule when it is not (FR-033, FR-010)
-- [ ] T078 [US4] Wire the case-scoped run into `ui/src/cases/CaseWorkspace.tsx`, reusing the US2 matches view with scope pre-set to `CASE_SCOPED` (FR-014, FR-031)
-- [ ] T079 [US4] Implement case closing in `ui/src/cases/CaseWorkspace.tsx` as `POST /api/v1/cases` with `status: 'CLOSED'`, `id` and `version`, reflecting the change immediately (FR-031, US4-4)
-- [ ] T080 [US4] Keep a closed case fully readable in `ui/src/cases/CaseWorkspace.tsx`, with its history reachable (US4-5)
-- [ ] T081 [P] [US4] Capture MSW handlers for `GET /cases/{id}` — with a rule, without a rule, and with more than twenty links — into `ui/src/test/handlers/cases.ts`
+- [X] T075 [US4] Build the case workspace in `ui/src/cases/CaseWorkspace.tsx` over `GET /api/v1/cases/{id}`, showing title, status, `openedAt`, the rule if any, and the linked persons together (FR-031)
+- [X] T076 [US4] Show the true `linkedPersonCount` in `ui/src/cases/LinkedPersons.tsx` and mark the embedded twenty as a **partial subset**, never presenting it as complete. Record inline that the twenty-first is unreachable because `/person-cases` cannot be filtered by case (FR-032, spec dependency #3)
+- [X] T077 [US4] Offer rule authoring in `ui/src/cases/CaseWorkspace.tsx` when `ruleId` is null, and opening the existing rule when it is not (FR-033, FR-010)
+- [X] T078 [US4] Wire the case-scoped run into `ui/src/cases/CaseWorkspace.tsx`, reusing the US2 matches view with scope pre-set to `CASE_SCOPED` (FR-014, FR-031)
+- [X] T079 [US4] Implement case closing in `ui/src/cases/CaseWorkspace.tsx` as `POST /api/v1/cases` with `status: 'CLOSED'`, `id` and `version`, reflecting the change immediately (FR-031, US4-4)
+- [X] T080 [US4] Keep a closed case fully readable in `ui/src/cases/CaseWorkspace.tsx`, with its history reachable (US4-5)
+- [X] T081 [P] [US4] Capture MSW handlers for `GET /cases/{id}` — with a rule, without a rule, and with more than twenty links — into `ui/src/test/handlers/cases.ts`
 
 **Checkpoint**: The case is a workspace, composed from US1–US3 rather than duplicating them.
 

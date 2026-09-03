@@ -1,9 +1,8 @@
-// Placeholder shell for the case workspace — filled in by User Story 4 (T075–T081).
+import { useParams } from 'react-router-dom';
+import { CaseWorkspace } from './CaseWorkspace';
+
 export function CaseWorkspacePage() {
-  return (
-    <section>
-      <h2>Case workspace</h2>
-      <p>The case workspace is delivered in User Story 4.</p>
-    </section>
-  );
+  const { id } = useParams<{ id: string }>();
+  if (!id) return <p>No case selected.</p>;
+  return <CaseWorkspace caseId={id} />;
 }

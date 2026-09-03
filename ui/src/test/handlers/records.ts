@@ -22,7 +22,6 @@ export const recordsHandlers = [
   http.delete('/api/v1/persons/:id', () => new HttpResponse(null, { status: 204 })),
 
   http.get('/api/v1/cases', () => HttpResponse.json(page([caseSummary()], { totalElements: 1 }))),
-  http.get('/api/v1/cases/:id', ({ params }) => HttpResponse.json(caseDetail({ id: String(params.id) }))),
   http.post('/api/v1/cases', async ({ request }) => {
     const body = (await request.json()) as { id?: string | null; status?: string };
     return HttpResponse.json(caseDetail({ id: body.id ?? caseSummary().id, status: (body.status as never) ?? 'OPEN' }), {
