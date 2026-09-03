@@ -263,8 +263,8 @@ changes, and the sensitive field masked.
 - [X] T097 Complete a keyboard-only pass over `ui/src/rules/` confirming every builder action is reachable and completable without a pointer, and that results, saves and validation failures are announced (FR-044, SC-008)
 - [X] T098 [P] Document the `ui/` module in `ui/README.md` — dev proxy, the `-Pui` packaging profile, and **why the field catalog is a stopgap** with a pointer to `contracts/field-catalog.md` §4, so the next reader does not rediscover the drift risk
 - [X] T099 [P] Add the frontend to `README.md` "Known gaps" — the client field catalog duplicates server truth, and a field retyped under an unchanged name is undetectable by the start-up check
-- [ ] T100 Run the full quickstart in `specs/002-rule-engine-ui/quickstart.md`, scenarios 1–7, against a running service and seeded data
-- [ ] T101 Verify the packaged jar per `quickstart.md` § Producing the deployable artifact: a deep link returns `200` **and** an unknown API path returns a JSON `404 RECORD_NOT_FOUND` rather than HTML (research R3)
+- [X] T100 Run the full quickstart in `specs/002-rule-engine-ui/quickstart.md`, scenarios 1–7, against a running service and seeded data
+- [X] T101 Verify the packaged jar per `quickstart.md` § Producing the deployable artifact: a deep link returns `200` **and** an unknown API path returns a JSON `404 RECORD_NOT_FOUND` rather than HTML (research R3)
 - [X] T102 Confirm the definition of done — `~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn verify` passes with the **backend suite unchanged** (this feature alters no API behaviour), and `npm run typecheck && npm run lint && npx vitest run` pass in `ui/`
 
 ---
