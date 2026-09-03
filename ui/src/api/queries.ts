@@ -40,6 +40,7 @@ export const qk = {
   },
   personCases: {
     list: (params: unknown) => ['person-cases', 'list', params] as const,
+    detail: (id: string) => ['person-cases', 'detail', id] as const,
   },
   audit: {
     list: (params: unknown) => ['audit-entries', 'list', params] as const,

@@ -179,25 +179,25 @@ the interaction, paging and error handling are identical apart from the fields d
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T059 [P] [US3] Write the concurrency test in `ui/src/records/RecordEditor.test.tsx` asserting that after a `CONCURRENT_MODIFICATION` rejection **100% of the user's unsaved edits are still on screen**, and that no silent re-read or re-submit occurs (FR-024, SC-005)
-- [ ] T060 [P] [US3] Write the sort test in `ui/src/records/RecordList.test.tsx` asserting each resource offers only its allowed keys from `contracts/api-contract.md` §1.2, in both directions, and that no out-of-list key can be constructed (FR-021)
+- [X] T059 [P] [US3] Write the concurrency test in `ui/src/records/RecordEditor.test.tsx` asserting that after a `CONCURRENT_MODIFICATION` rejection **100% of the user's unsaved edits are still on screen**, and that no silent re-read or re-submit occurs (FR-024, SC-005)
+- [X] T060 [P] [US3] Write the sort test in `ui/src/records/RecordList.test.tsx` asserting each resource offers only its allowed keys from `contracts/api-contract.md` §1.2, in both directions, and that no out-of-list key can be constructed (FR-021)
 
 ### Implementation for User Story 3
 
-- [ ] T061 [US3] Define the per-resource configuration type in `ui/src/records/resourceConfig.ts` — columns, sort keys, editable fields, retirement route — so the four record types differ only by data (FR-020)
-- [ ] T062 [US3] Build the generic listing in `ui/src/records/RecordList.tsx` with paging, total record and page counts, and column sorting restricted to the configured keys (FR-020, FR-021)
-- [ ] T063 [US3] Display the **applied** page size in `ui/src/records/RecordList.tsx`, taken from `PageResponse.size`, which may be smaller than one requested — clamping is silent server-side (FR-022)
-- [ ] T064 [US3] Build the generic detail/edit form in `ui/src/records/RecordEditor.tsx` submitting only the resource's declared writable fields, adding no field of its own, since an unrecognised field is a 400 rather than an ignore (FR-029)
-- [ ] T065 [US3] Implement create mode in `ui/src/records/RecordEditor.tsx` — an empty form per resource config, `POST` with a **null `id` and no `version`**, handling `201` plus the `Location` header and routing to the created record. Create and update are the same route; the null `id` is what distinguishes them (FR-020, contract §1)
-- [ ] T066 [US3] Send `id` and the `version` read with the record on every update from `ui/src/records/RecordEditor.tsx`, and render server-owned fields — authorship, timing, version — as non-editable (FR-023, FR-030)
-- [ ] T067 [US3] Implement conflict handling in `ui/src/records/RecordEditor.tsx`: on `CONCURRENT_MODIFICATION`, preserve every unsaved edit, explain what happened, and **offer** re-reading the current record rather than performing it (FR-024, SC-005)
-- [ ] T068 [US3] Attach per-field validation detail in `ui/src/records/RecordEditor.tsx` by splitting a `VALIDATION_FAILED` message on `"; "` and binding each part to its input, so offending fields are identified individually (FR-020-9, contract §5.2)
-- [ ] T069 [US3] Present the retirement route in `ui/src/records/RetireAction.tsx` for cases and rules: a `DELETION_NOT_SUPPORTED` becomes an **offered action** — close by status, disable by flag — never an error the user must interpret (FR-025)
-- [ ] T070 [US3] Build the person deletion confirmation in `ui/src/records/DeletePersonDialog.tsx` stating both consequences: the person is retired rather than erased, and their case links are removed with them (FR-026, spec dependency #4)
-- [ ] T071 [US3] Build the link removal confirmation in `ui/src/records/UnlinkDialog.tsx` stating that only the link is removed and neither the person nor the case is affected (FR-027)
-- [ ] T072 [P] [US3] Configure the four resources in `ui/src/records/configs/` — persons, cases, rules, person-cases — each supplying only its columns, sort keys and writable fields (FR-020)
-- [ ] T073 [US3] Render an explicit empty state on every listing in `ui/src/records/RecordList.tsx` carrying the next useful action (FR-041)
-- [ ] T074 [P] [US3] Capture MSW handlers for the four resources' list/get/save/delete routes into `ui/src/test/handlers/records.ts`, including a 409 and a 405 response
+- [X] T061 [US3] Define the per-resource configuration type in `ui/src/records/resourceConfig.ts` — columns, sort keys, editable fields, retirement route — so the four record types differ only by data (FR-020)
+- [X] T062 [US3] Build the generic listing in `ui/src/records/RecordList.tsx` with paging, total record and page counts, and column sorting restricted to the configured keys (FR-020, FR-021)
+- [X] T063 [US3] Display the **applied** page size in `ui/src/records/RecordList.tsx`, taken from `PageResponse.size`, which may be smaller than one requested — clamping is silent server-side (FR-022)
+- [X] T064 [US3] Build the generic detail/edit form in `ui/src/records/RecordEditor.tsx` submitting only the resource's declared writable fields, adding no field of its own, since an unrecognised field is a 400 rather than an ignore (FR-029)
+- [X] T065 [US3] Implement create mode in `ui/src/records/RecordEditor.tsx` — an empty form per resource config, `POST` with a **null `id` and no `version`**, handling `201` plus the `Location` header and routing to the created record. Create and update are the same route; the null `id` is what distinguishes them (FR-020, contract §1)
+- [X] T066 [US3] Send `id` and the `version` read with the record on every update from `ui/src/records/RecordEditor.tsx`, and render server-owned fields — authorship, timing, version — as non-editable (FR-023, FR-030)
+- [X] T067 [US3] Implement conflict handling in `ui/src/records/RecordEditor.tsx`: on `CONCURRENT_MODIFICATION`, preserve every unsaved edit, explain what happened, and **offer** re-reading the current record rather than performing it (FR-024, SC-005)
+- [X] T068 [US3] Attach per-field validation detail in `ui/src/records/RecordEditor.tsx` by splitting a `VALIDATION_FAILED` message on `"; "` and binding each part to its input, so offending fields are identified individually (FR-020-9, contract §5.2)
+- [X] T069 [US3] Present the retirement route in `ui/src/records/RetireAction.tsx` for cases and rules: a `DELETION_NOT_SUPPORTED` becomes an **offered action** — close by status, disable by flag — never an error the user must interpret (FR-025)
+- [X] T070 [US3] Build the person deletion confirmation in `ui/src/records/DeletePersonDialog.tsx` stating both consequences: the person is retired rather than erased, and their case links are removed with them (FR-026, spec dependency #4)
+- [X] T071 [US3] Build the link removal confirmation in `ui/src/records/UnlinkDialog.tsx` stating that only the link is removed and neither the person nor the case is affected (FR-027)
+- [X] T072 [P] [US3] Configure the four resources in `ui/src/records/configs/` — persons, cases, rules, person-cases — each supplying only its columns, sort keys and writable fields (FR-020)
+- [X] T073 [US3] Render an explicit empty state on every listing in `ui/src/records/RecordList.tsx` carrying the next useful action (FR-041)
+- [X] T074 [P] [US3] Capture MSW handlers for the four resources' list/get/save/delete routes into `ui/src/test/handlers/records.ts`, including a 409 and a 405 response
 
 **Checkpoint**: All four record types are browsable, editable and retirable through one surface.
 

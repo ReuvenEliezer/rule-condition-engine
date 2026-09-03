@@ -5,6 +5,7 @@
 import { request } from './client';
 import { decodeRuleDetail, serializeRuleBody } from './ruleWire';
 import type {
+  AnySummary,
   CaseDetail,
   CaseSummary,
   CaseWrite,
@@ -101,3 +102,19 @@ export const rules = crud<RuleSummary, RuleDetail, RuleWrite, RuleSortKey>('/rul
   serialize: (body) => serializeRuleBody(body),
 });
 export const personCases = crud<PersonCaseSummary, PersonCaseSummary, PersonCaseWrite, PersonCaseSortKey>('/person-cases');
+
+// A loosely-typed facade for the generic record surface (US3). The concrete typed exports above
+// are what everything else uses.
+export type AnyCrud = {
+  list: (params?: ListParams<string>, signal?: AbortSignal) => Promise<PageResponse<AnySummary>>;
+  get: (id: string, signal?: AbortSignal) => Promise<Record<string, unknown>>;
+  save: (body: Record<string, unknown>) => Promise<{ detail: Record<string, unknown>; created: boolean; location: string | null }>;
+  remove: (id: string) => Promise<void>;
+};
+
+export const byResource: Record<'persons' | 'cases' | 'rules' | 'person-cases', AnyCrud> = {
+  persons: persons as unknown as AnyCrud,
+  cases: cases as unknown as AnyCrud,
+  rules: rules as unknown as AnyCrud,
+  'person-cases': personCases as unknown as AnyCrud,
+};
