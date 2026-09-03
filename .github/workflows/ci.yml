@@ -67,3 +67,49 @@ jobs:
           name: test-reports
           path: '**/target/*-reports/*.txt'
           retention-days: 7
+
+  # The frontend module in ui/. No `needs:` — a UI failure and a backend failure are
+  # independent signals, and the Java job must not have to wait on Node (research R3,
+  # github-ci-standards).
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npx vitest run --reporter=junit --outputFile=test-results/junit.xml
+        env:
+          CI: 'true'
+
+      - name: Build
+        run: npm run build
+
+      - name: Test report
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
+        if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          name: UI Tests
+          path: 'ui/test-results/junit.xml'
+          reporter: java-junit
+          fail-on-error: true

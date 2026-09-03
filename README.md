@@ -6,23 +6,11 @@ Java 25 · Spring Boot 4.1.1 · Postgres 18.
 
 ---
 
-## Not yet verified — read this first
+## Status
 
-**The project has not been compiled.** Maven Central is blocked from the environment this was
-generated in (`403` from the egress proxy) and no `javac` is available, so nothing here has been
-through a compiler or a test run. The logic and the API shapes are deliberate, but expect to fix
-import-level and signature-level breakage on the first `mvn test`. Three spots to look at first:
-
-1. **`Rule.conditionTree` mapping.** `@Convert` + `@JdbcTypeCode(SqlTypes.JSON)` is the combination
-   that makes Hibernate bind the converter's `String` output as `jsonb` rather than `text` — Postgres
-   will not implicitly cast between them. This works on Hibernate 6.2+, but confirm it on the exact
-   Hibernate 7.x that Boot 4.1.1 pulls in before building anything on top of it.
-2. **`RuleNodeConverter` as a Spring bean.** It relies on Boot wiring Hibernate's `SpringBeanContainer`
-   so the converter gets the application `ObjectMapper`. If Hibernate instantiates it reflectively
-   instead, `objectMapper` will be null at first use.
-3. **`Specification` in Spring Data JPA 4.** The `toPredicate` contract changed across 3.x → 4.x
-   (notably `query` being nullable); the compiler guards for null, but verify against the actual
-   interface.
+Backend `mvn verify` passes (89 tests, Testcontainers Postgres). The browser client in
+[`ui/`](ui/README.md) builds and its Vitest suite passes (156 tests). `mvn -Pui clean package`
+produces a jar that serves the API and the UI from one origin. See [Running](#running).
 
 ---
 
@@ -152,13 +140,104 @@ carries its own attributes (`role`, `linked_at`).
 
 ## Running
 
+There are two ways to run this: **dev mode** (two processes — Spring Boot on `:8080`, Vite on
+`:5173`, hot-reload on both) and the **single jar** (one process on `:8080` serving the API *and*
+the built UI from one origin).
+
+### Prerequisites
+
+| Tool | Version | Used for |
+|---|---|---|
+| JDK | 25 | backend |
+| Docker | any recent | Postgres (dev DB and Testcontainers) |
+| Node | 24 | frontend — dev mode and the `-Pui` build only |
+
+Maven is invoked through the cached wrapper distribution, **not** a CLI `mvn` and **not** `./mvnw`
+(there is no wrapper script in this repo). Everything below writes it out; `$MVN` is shorthand for:
+
 ```bash
-docker compose up -d          # Postgres 18.4, waits on pg_isready
-mvn spring-boot:run           # Flyway migrates on startup
-mvn test                      # Testcontainers spins its own Postgres
+~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn
 ```
 
-Compose credentials are dev-only defaults and are not appropriate for any shared environment.
+### 1. Start Postgres
+
+```bash
+docker compose up -d
+```
+
+Postgres 18.4 on `localhost:5432`, database/user/password all `ruleengine`. These are dev-only
+defaults and are not appropriate for any shared environment.
+
+### 2. Dev mode — backend
+
+```bash
+~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn spring-boot:run
+```
+
+Flyway migrates on startup and `ddl-auto` is `validate`, so a schema mismatch fails loudly here
+rather than at first query. Check it is up and publishing the eight field names the UI catalog
+expects:
+
+```bash
+curl -s localhost:8080/api/v1/rules/fields
+```
+
+Expected (sorted): `age`, `case.role`, `case.status`, `case.title`, `city`, `createdAt`, `name`,
+`risk`.
+
+### 3. Dev mode — frontend
+
+```bash
+cd ui
+npm ci
+npm run dev
+```
+
+Vite serves `http://localhost:5173` and **proxies `/api` to `http://localhost:8080`**, so the
+browser sees one origin and no CORS configuration is needed. Open `http://localhost:5173`.
+
+To point the UI at a backend somewhere other than the proxy target, set `VITE_API_BASE_URL`
+(e.g. `VITE_API_BASE_URL=https://staging.example/api/v1 npm run dev`); it defaults to `/api/v1`.
+
+### 4. Seed a little data
+
+```bash
+curl -s -X POST localhost:8080/api/v1/persons -H 'Content-Type: application/json' \
+  -d '{"name":"AVI COHEN","age":35,"city":"Haifa","risk":"HIGH","nationalId":"111111111"}'
+
+curl -s -X POST localhost:8080/api/v1/cases -H 'Content-Type: application/json' \
+  -d '{"title":"Operation Northwind","status":"OPEN"}'
+```
+
+### 5. Single jar — API + UI from one origin
+
+```bash
+~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn -Pui clean package
+java -jar target/rule-condition-engine-0.1.0-SNAPSHOT.jar
+```
+
+The non-default `ui` profile runs `npm ci && npm run build` in `ui/` and folds `ui/dist` into the
+jar's `static/`. The **default** build (`$MVN clean package`, no `-Pui`) needs no Node at all. The
+app is then at `http://localhost:8080` and deep links survive a reload:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/rules/new          # 200
+curl -s -w '\n%{http_code}\n' localhost:8080/api/v1/persons/00000000-0000-0000-0000-000000000000
+# 404 with a JSON RECORD_NOT_FOUND body — never HTML
+```
+
+Override the datasource with the standard Spring env vars if `:5432` is taken, e.g.
+`SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/ruleengine java -jar ...`.
+
+### Tests
+
+```bash
+~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn verify   # backend — Testcontainers spins its own Postgres
+cd ui && npm run typecheck && npm run lint && npx vitest run       # frontend
+```
+
+The frontend suite ([`ui/`](ui/README.md)) uses Vitest + MSW with no live backend; the MSW
+handlers are shaped from captured real responses.
 
 ---
 
@@ -172,10 +251,16 @@ Compose credentials are dev-only defaults and are not appropriate for any shared
   query level (a base repository or a Hibernate `@Filter`), not by application-layer filtering. Note
   that the field registry is a *global static map*; tenant-specific queryable fields would need it to
   become tenant-scoped.
-- **No audit trail.** Who authored a rule, who ran it, and what it returned are all unrecorded. In
-  this domain that is usually a hard requirement rather than a nice-to-have.
-- **No authn/authz.** Every endpoint is open.
+- **No authn/authz.** Every endpoint is open, and the audit trail attributes every change to
+  `system` because there is no authenticated principal to record.
 - **`CASE_SCOPED` forces `DISTINCT`.** An `EXISTS` subquery would avoid it, but the compiler may
   already have joined `caseLinks` for a `case.*` field and a second independent join would change the
   predicate's meaning. If `case.*` fields are dropped from the registry, switch to `EXISTS`.
 - **No rule versioning.** Editing a tree overwrites it, so a past evaluation cannot be reproduced.
+- **The browser client's field catalog duplicates server truth.** `GET /api/v1/rules/fields`
+  publishes names only, so `ui/src/rules/catalog.ts` holds a hand-derived copy of each field's type,
+  operators and enum values. A start-up set-equality check turns an added or removed field into a
+  blocking configuration error, but **a field retyped under an unchanged name is undetectable** by
+  that check. The fix is to publish the metadata (type, operators, enum values) from
+  `RuleController.queryableFields()`. See [`ui/README.md`](ui/README.md) and
+  [`specs/002-rule-engine-ui/contracts/field-catalog.md`](specs/002-rule-engine-ui/contracts/field-catalog.md).
