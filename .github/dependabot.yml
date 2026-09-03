@@ -60,3 +60,44 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "build(deps)"
+
+  # The frontend module in /ui — so its dependencies are not the one part of the reactor
+  # nothing updates.
+  - package-ecosystem: "npm"
+    directory: "/ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Jerusalem"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "react-router-dom"
+        update-types: [ "minor", "patch" ]
+      tooling:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+          - "typescript"
+          - "typescript-eslint"
+          - "eslint*"
+          - "@eslint/*"
+        update-types: [ "minor", "patch" ]
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "msw"
+          - "jsdom"
+        update-types: [ "minor", "patch" ]
+      remaining:
+        patterns: [ "*" ]
+        update-types: [ "minor", "patch" ]

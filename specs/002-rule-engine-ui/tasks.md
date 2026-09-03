@@ -47,15 +47,15 @@ Structure): `ui/` at the repository root, backend untouched apart from packaging
 **Purpose**: Stand up the `ui/` module in the shape this project's CI standard already fixes — Node
 24, npm, and the `typecheck` / `lint` / `test` / `build` script names its `ui` job invokes.
 
-- [ ] T001 Create the `ui/` module skeleton at the repository root with `ui/package.json` declaring React 19, Vite 7, TypeScript 5.9, and the four scripts `dev`, `build`, `typecheck`, `lint` plus `test`
-- [ ] T002 [P] Configure TypeScript in `ui/tsconfig.json` with `strict`, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` enabled — the summary/detail type split in `data-model.md` §1 only catches an accidental `nationalId` read under strict settings
-- [ ] T003 [P] Configure Vite in `ui/vite.config.ts` with the `/api` → `http://localhost:8080` dev proxy, so development is same-origin and needs no CORS configuration (research R2)
-- [ ] T004 [P] Configure ESLint in `ui/eslint.config.js` with `typescript-eslint` and `eslint-plugin-jsx-a11y` — the a11y rules are load-bearing for FR-044, not decoration
-- [ ] T005 [P] Configure Vitest in `ui/vitest.config.ts` with the jsdom environment and a JUnit reporter path matching the CI job's `test-results/junit.xml`
-- [ ] T006 [P] Create the application entry point `ui/index.html` and `ui/src/main.tsx` mounting the React root
-- [ ] T007 [P] Add MSW to `ui/src/test/server.ts` and `ui/src/test/setup.ts`, wiring `beforeAll`/`afterEach`/`afterAll` lifecycle
-- [ ] T008 [P] Add the parallel `ui` job to `.github/workflows/ci.yml` — Node 24, `working-directory: ui`, `cache-dependency-path: ui/package-lock.json`, `timeout-minutes: 10`, running `npm ci` → `typecheck` → `lint` → `vitest --reporter=junit` → `build`, with **no `needs:`** so a UI failure and a backend failure are independent signals
-- [ ] T009 [P] Add the `npm` ecosystem for `/ui` to `.github/dependabot.yml` on a `weekly` schedule, so frontend dependencies are not the one part of the reactor nothing updates
+- [X] T001 Create the `ui/` module skeleton at the repository root with `ui/package.json` declaring React 19, Vite 7, TypeScript 5.9, and the four scripts `dev`, `build`, `typecheck`, `lint` plus `test`
+- [X] T002 [P] Configure TypeScript in `ui/tsconfig.json` with `strict`, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` enabled — the summary/detail type split in `data-model.md` §1 only catches an accidental `nationalId` read under strict settings
+- [X] T003 [P] Configure Vite in `ui/vite.config.ts` with the `/api` → `http://localhost:8080` dev proxy, so development is same-origin and needs no CORS configuration (research R2)
+- [X] T004 [P] Configure ESLint in `ui/eslint.config.js` with `typescript-eslint` and `eslint-plugin-jsx-a11y` — the a11y rules are load-bearing for FR-044, not decoration
+- [X] T005 [P] Configure Vitest in `ui/vitest.config.ts` with the jsdom environment and a JUnit reporter path matching the CI job's `test-results/junit.xml`
+- [X] T006 [P] Create the application entry point `ui/index.html` and `ui/src/main.tsx` mounting the React root
+- [X] T007 [P] Add MSW to `ui/src/test/server.ts` and `ui/src/test/setup.ts`, wiring `beforeAll`/`afterEach`/`afterAll` lifecycle
+- [X] T008 [P] Add the parallel `ui` job to `.github/workflows/ci.yml` — Node 24, `working-directory: ui`, `cache-dependency-path: ui/package-lock.json`, `timeout-minutes: 10`, running `npm ci` → `typecheck` → `lint` → `vitest --reporter=junit` → `build`, with **no `needs:`** so a UI failure and a backend failure are independent signals
+- [X] T009 [P] Add the `npm` ecosystem for `/ui` to `.github/dependabot.yml` on a `weekly` schedule, so frontend dependencies are not the one part of the reactor nothing updates
 
 **Checkpoint**: `cd ui && npm run typecheck && npm run lint && npx vitest run` all pass on an empty project.
 
@@ -70,28 +70,28 @@ builds on.
 
 ### Wire types and the API client
 
-- [ ] T010 [P] Define the envelope and record types in `ui/src/api/types.ts` per `data-model.md` §1 — `PageResponse<T>`, `ErrorResponse`, and **separate** `PersonSummary`/`PersonDetail`, `CaseSummary`/`CaseDetail`, `RuleSummary`/`RuleDetail`, `PersonCaseSummary`/`PersonCaseDetail`, plus the `RiskLevel`/`CaseStatus`/`PersonRole` unions. `nationalId` appears on `PersonDetail` only — never as an optional field on a shared type (FR-016, FR-043, SC-004)
-- [ ] T011 [P] Define the condition-tree types in `ui/src/api/tree.ts` per `data-model.md` §2 — `RuleNode` with its `GROUP`/`CONDITION`/`UNARY` discriminator, `ConditionValue` with its `STRING`/`NUMBER`/`RANGE`/`LIST` discriminator, and the twelve-member `ComparisonOperator` union
-- [ ] T012 [P] Define the closed `ErrorCode` union and the exhaustive presentation map in `ui/src/api/errors.ts` covering all sixteen codes in `contracts/api-contract.md` §5, typed so an unhandled code is a **compile** error. Branch on `code` only; carry `message` as display detail (FR-039)
-- [ ] T013 Implement the base client in `ui/src/api/client.ts`: base URL from `import.meta.env.VITE_API_BASE_URL ?? '/api/v1'` resolved in this one module (FR-046, research R11); parse `ErrorResponse` bodies into a typed failure; and distinguish a transport failure from a refusal as two different result kinds, never one (FR-040)
-- [ ] T014 Add lossless JSON handling to `ui/src/api/client.ts` using `lossless-json` for the four tree-carrying routes (`GET`/`POST /rules`, `PUT /rules/{id}/condition`, `POST /rules/preview`) and plain `JSON` elsewhere, so a `BigDecimal` operand is not re-rounded (research R5, FR-013)
-- [ ] T015 Implement typed resource functions in `ui/src/api/resources.ts` — list/get/save/delete for `/persons`, `/cases`, `/rules`, `/person-cases` — with the per-resource allowed sort keys from `contracts/api-contract.md` §1.2 encoded as literal unions, so an out-of-list sort key cannot be constructed (FR-021)
-- [ ] T016 Implement the rule-specific functions in `ui/src/api/rules.ts` — `preview`, `matches`, `updateCondition`, `queryableFields` — per `contracts/api-contract.md` §2
-- [ ] T017 [P] Implement the audit function in `ui/src/api/audit.ts` with the type/id filter combinations from `contracts/api-contract.md` §3, structurally preventing `recordId` without `recordType` (FR-035)
+- [X] T010 [P] Define the envelope and record types in `ui/src/api/types.ts` per `data-model.md` §1 — `PageResponse<T>`, `ErrorResponse`, and **separate** `PersonSummary`/`PersonDetail`, `CaseSummary`/`CaseDetail`, `RuleSummary`/`RuleDetail`, `PersonCaseSummary`/`PersonCaseDetail`, plus the `RiskLevel`/`CaseStatus`/`PersonRole` unions. `nationalId` appears on `PersonDetail` only — never as an optional field on a shared type (FR-016, FR-043, SC-004)
+- [X] T011 [P] Define the condition-tree types in `ui/src/api/tree.ts` per `data-model.md` §2 — `RuleNode` with its `GROUP`/`CONDITION`/`UNARY` discriminator, `ConditionValue` with its `STRING`/`NUMBER`/`RANGE`/`LIST` discriminator, and the twelve-member `ComparisonOperator` union
+- [X] T012 [P] Define the closed `ErrorCode` union and the exhaustive presentation map in `ui/src/api/errors.ts` covering all sixteen codes in `contracts/api-contract.md` §5, typed so an unhandled code is a **compile** error. Branch on `code` only; carry `message` as display detail (FR-039)
+- [X] T013 Implement the base client in `ui/src/api/client.ts`: base URL from `import.meta.env.VITE_API_BASE_URL ?? '/api/v1'` resolved in this one module (FR-046, research R11); parse `ErrorResponse` bodies into a typed failure; and distinguish a transport failure from a refusal as two different result kinds, never one (FR-040)
+- [X] T014 Add lossless JSON handling to `ui/src/api/client.ts` using `lossless-json` for the four tree-carrying routes (`GET`/`POST /rules`, `PUT /rules/{id}/condition`, `POST /rules/preview`) and plain `JSON` elsewhere, so a `BigDecimal` operand is not re-rounded (research R5, FR-013)
+- [X] T015 Implement typed resource functions in `ui/src/api/resources.ts` — list/get/save/delete for `/persons`, `/cases`, `/rules`, `/person-cases` — with the per-resource allowed sort keys from `contracts/api-contract.md` §1.2 encoded as literal unions, so an out-of-list sort key cannot be constructed (FR-021)
+- [X] T016 Implement the rule-specific functions in `ui/src/api/rules.ts` — `preview`, `matches`, `updateCondition`, `queryableFields` — per `contracts/api-contract.md` §2
+- [X] T017 [P] Implement the audit function in `ui/src/api/audit.ts` with the type/id filter combinations from `contracts/api-contract.md` §3, structurally preventing `recordId` without `recordType` (FR-035)
 
 ### Query layer and shared primitives
 
-- [ ] T018 Configure the TanStack Query client and key factory in `ui/src/api/queries.ts` — last-request-wins per key for supersession, `placeholderData` for paging, and `gcTime: 0` on the person-detail key so `nationalId` is dropped when its view unmounts (FR-042, FR-043, research R6, R8)
-- [ ] T019 [P] Build the failure banner in `ui/src/ui/FailureBanner.tsx`, rendering the T012 map, showing the server `message` for `RULE_TREE_TOO_COMPLEX`, and offering retry only on transport failures (FR-039, FR-040, FR-012)
-- [ ] T020 [P] Build the empty state in `ui/src/ui/EmptyState.tsx`, requiring a next-action prop so no empty region can ship without one (FR-041)
-- [ ] T021 [P] Build the pager in `ui/src/ui/Pager.tsx`, rendering `PageResponse.page`/`totalPages`/`totalElements` and displaying the **applied** `size`, never a requested one (FR-015, FR-022)
-- [ ] T022 [P] Build the announcement primitives in `ui/src/ui/LiveRegion.tsx` — `aria-live="polite"` for results and saves, `aria-live="assertive"` for validation failures (FR-044, research R9)
-- [ ] T023 Build the application shell and routing in `ui/src/App.tsx` with an in-flight indicator on every pending request and **no sign-in, user menu, or permission affordance anywhere** (FR-042, FR-045)
+- [X] T018 Configure the TanStack Query client and key factory in `ui/src/api/queries.ts` — last-request-wins per key for supersession, `placeholderData` for paging, and `gcTime: 0` on the person-detail key so `nationalId` is dropped when its view unmounts (FR-042, FR-043, research R6, R8)
+- [X] T019 [P] Build the failure banner in `ui/src/ui/FailureBanner.tsx`, rendering the T012 map, showing the server `message` for `RULE_TREE_TOO_COMPLEX`, and offering retry only on transport failures (FR-039, FR-040, FR-012)
+- [X] T020 [P] Build the empty state in `ui/src/ui/EmptyState.tsx`, requiring a next-action prop so no empty region can ship without one (FR-041)
+- [X] T021 [P] Build the pager in `ui/src/ui/Pager.tsx`, rendering `PageResponse.page`/`totalPages`/`totalElements` and displaying the **applied** `size`, never a requested one (FR-015, FR-022)
+- [X] T022 [P] Build the announcement primitives in `ui/src/ui/LiveRegion.tsx` — `aria-live="polite"` for results and saves, `aria-live="assertive"` for validation failures (FR-044, research R9)
+- [X] T023 Build the application shell and routing in `ui/src/App.tsx` with an in-flight indicator on every pending request and **no sign-in, user menu, or permission affordance anywhere** (FR-042, FR-045)
 
 ### Packaging (the same-origin decision)
 
-- [ ] T024 Add the non-default `ui` Maven profile to `pom.xml`: `frontend-maven-plugin` running `npm ci` and `npm run build` in `ui/` at `generate-resources`, and `maven-resources-plugin` copying `ui/dist` into `${project.build.outputDirectory}/static` at `prepare-package`. Non-default so the CI Java job needs no Node (research R3)
-- [ ] T025 Create `src/main/java/com/eliezer/ruleengine/config/SpaForwardingConfig.java` forwarding unmatched GETs to `/index.html`, **excluding any path beginning `/api/` and any path naming a file extension** — a catch-all would render API 404s as HTML and defeat FR-039 for every not-found path (research R3)
+- [X] T024 Add the non-default `ui` Maven profile to `pom.xml`: `frontend-maven-plugin` running `npm ci` and `npm run build` in `ui/` at `generate-resources`, and `maven-resources-plugin` copying `ui/dist` into `${project.build.outputDirectory}/static` at `prepare-package`. Non-default so the CI Java job needs no Node (research R3)
+- [X] T025 Create `src/main/java/com/eliezer/ruleengine/config/SpaForwardingConfig.java` forwarding unmatched GETs to `/index.html`, **excluding any path beginning `/api/` and any path naming a file extension** — a catch-all would render API 404s as HTML and defeat FR-039 for every not-found path (research R3)
 
 **Checkpoint**: The typed client, the failure vocabulary and the shell exist; `mvn -Pui clean package` produces a jar that serves the app and the API from one origin.
 
