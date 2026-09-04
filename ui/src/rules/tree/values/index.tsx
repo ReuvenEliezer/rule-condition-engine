@@ -1,15 +1,17 @@
-// Value controls, chosen by operand shape (FR-003, FR-004, FR-007). Numeric operands are
-// string-backed and never a JS `number` (research R5). Inverted ranges and blank/duplicate list
-// entries are refused inline, mirroring the compact constructors in rule/model/value/.
+// Value controls, chosen by operand shape (FR-012). Numeric operands are string-backed and never
+// a JS `number`, so a BigDecimal operand round-trips byte-identically (SC-004). Inverted ranges and
+// blank/duplicate list entries are refused inline, mirroring the compact constructors in
+// rule/model/value/. Enum options come from the PUBLISHED metadata — never a client-side list.
 
 import { useId } from 'react';
 import type { ConditionValue } from '../../../api/tree';
-import type { FieldCatalogEntry, OperandShape } from '../../catalog';
+import { Input } from '../../../ui/components/Input';
+import type { FieldMetadata, OperandShape } from '../../metadata';
 
 export type ValueControlProps = {
   shape: OperandShape;
   value: ConditionValue;
-  entry: FieldCatalogEntry;
+  field: FieldMetadata | undefined;
   onChange: (next: ConditionValue) => void;
   describedById?: string | undefined;
 };
@@ -28,6 +30,7 @@ export function ValueControl(props: ValueControlProps) {
       return <EnumListInput {...props} />;
     case 'ENUM':
       return <EnumValueSelect {...props} />;
+    case 'STRING':
     default:
       return <StringValueInput {...props} />;
   }
@@ -36,8 +39,8 @@ export function ValueControl(props: ValueControlProps) {
 function StringValueInput({ value, onChange, describedById }: ValueControlProps) {
   const v = value.type === 'STRING' ? value.value : '';
   return (
-    <input
-      type="text"
+    <Input
+      className="min-w-0 flex-1 basis-40"
       aria-label="Value"
       value={v}
       aria-describedby={describedById}
@@ -50,9 +53,9 @@ function StringValueInput({ value, onChange, describedById }: ValueControlProps)
 function NumberValueInput({ value, onChange, describedById }: ValueControlProps) {
   const v = value.type === 'NUMBER' ? value.value : '';
   return (
-    <input
-      type="text"
+    <Input
       inputMode="decimal"
+      className="min-w-0 flex-1 basis-40"
       aria-label="Number"
       value={v}
       aria-describedby={describedById}
@@ -145,9 +148,9 @@ function ListValueInput({ value, onChange, describedById }: ValueControlProps) {
   );
 }
 
-function EnumValueSelect({ value, entry, onChange, describedById }: ValueControlProps) {
+function EnumValueSelect({ value, field, onChange, describedById }: ValueControlProps) {
   const v = value.type === 'STRING' ? value.value : '';
-  const options = entry.enumValues ?? [];
+  const options = field?.enumValues ?? [];
   return (
     <select
       aria-label="Value"
@@ -165,9 +168,9 @@ function EnumValueSelect({ value, entry, onChange, describedById }: ValueControl
 }
 
 // A closed multi-select over enumValues for IN / NOT_IN on an enum field.
-function EnumListInput({ value, entry, onChange, describedById }: ValueControlProps) {
+function EnumListInput({ value, field, onChange, describedById }: ValueControlProps) {
   const values = value.type === 'LIST' ? value.values : [];
-  const options = entry.enumValues ?? [];
+  const options = field?.enumValues ?? [];
   const toggle = (o: string) =>
     onChange({
       type: 'LIST',

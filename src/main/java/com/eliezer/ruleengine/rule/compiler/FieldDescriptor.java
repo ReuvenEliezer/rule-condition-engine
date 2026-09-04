@@ -13,6 +13,7 @@ import jakarta.persistence.criteria.Path;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * One whitelisted, queryable field: the mapping from a logical name exposed to rule authors
@@ -22,12 +23,16 @@ import java.util.List;
  * logical name is never concatenated into a query, only looked up.
  *
  * @param logicalName   name as it appears in rule JSON
+ * @param label         human display label, published to rule authors. The registry is the single
+ *                      source of truth for a field, so its label belongs here rather than in a
+ *                      parallel map that would drift; a blank one is derived from the logical name
  * @param joinPath      dotted path of association attributes that must be JOINed before the
  *                      attribute is reachable, or {@code null} when the field sits on the root
  * @param attributePath attribute name relative to the root (or to the last join)
  * @param javaType      the attribute's Java type, used for operand coercion
  */
-public record FieldDescriptor(String logicalName, String joinPath, String attributePath, Class<?> javaType) {
+public record FieldDescriptor(String logicalName, String label, String joinPath, String attributePath,
+                              Class<?> javaType) {
 
     public FieldDescriptor {
         if (logicalName == null || logicalName.isBlank()) {
@@ -36,16 +41,35 @@ public record FieldDescriptor(String logicalName, String joinPath, String attrib
         if (attributePath == null || attributePath.isBlank()) {
             throw new RuleValidationException("attributePath is required");
         }
+        if (label == null || label.isBlank()) {
+            label = humanise(logicalName);
+        }
     }
 
     /** Field directly on the query root. */
     public static FieldDescriptor of(String logicalName, String attributePath, Class<?> javaType) {
-        return new FieldDescriptor(logicalName, null, attributePath, javaType);
+        return new FieldDescriptor(logicalName, null, null, attributePath, javaType);
     }
 
     /** Field reachable only through one or more associations. */
     public static FieldDescriptor joined(String logicalName, String joinPath, String attributePath, Class<?> javaType) {
-        return new FieldDescriptor(logicalName, joinPath, attributePath, javaType);
+        return new FieldDescriptor(logicalName, null, joinPath, attributePath, javaType);
+    }
+
+    /**
+     * Registry-supplied display label. Written as a wither rather than a fifth factory argument so
+     * every existing call site keeps compiling and a label stays visibly optional.
+     */
+    public FieldDescriptor labelled(String displayLabel) {
+        return new FieldDescriptor(logicalName, displayLabel, joinPath, attributePath, javaType);
+    }
+
+    /** "createdAt" -> "Created at"; "case.role" -> "Case role". */
+    private static String humanise(String logicalName) {
+        String spaced = logicalName.replace('.', ' ')
+                .replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ")
+                .toLowerCase(Locale.ROOT);
+        return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
     }
 
     public boolean requiresJoin() {

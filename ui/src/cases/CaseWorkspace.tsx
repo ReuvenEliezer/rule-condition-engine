@@ -69,7 +69,7 @@ export function CaseWorkspace({ caseId }: { caseId: string }) {
         {c.ruleId ? (
           <div>
             <p>
-              This case has a rule. <Link to={`/rules/${c.ruleId}/condition`}>Open it to edit the condition</Link>.
+              This case has a rule. <Link to={`/rules/${c.ruleId}`}>Open it to edit</Link>.
             </p>
             <button type="button" onClick={() => setShowRun((s) => !s)}>
               {showRun ? 'Hide run' : 'Run this rule against the case'}

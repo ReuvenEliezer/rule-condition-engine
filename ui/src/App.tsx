@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { QueryClientProvider, useIsFetching, useIsMutating } from '@tanstack/react-query';
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom';
 import { Boxes, GitBranch, Link2, Menu, ScrollText, Users, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { queryClient } from './api/queries';
@@ -74,6 +74,11 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
       ))}
     </nav>
   );
+}
+
+function RuleConditionRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/rules/${id ?? ''}`} replace />;
 }
 
 function Brand() {
@@ -157,8 +162,10 @@ function Shell() {
             <Route path="/cases/:id" element={<CaseWorkspacePage />} />
             <Route path="/rules" element={<RecordsPage resource="rules" />} />
             <Route path="/rules/new" element={<RuleBuilderPage mode="create" />} />
-            <Route path="/rules/:id" element={<RecordsPage resource="rules" />} />
-            <Route path="/rules/:id/condition" element={<RuleBuilderPage mode="edit" />} />
+            <Route path="/rules/:id" element={<RuleBuilderPage mode="edit" />} />
+            {/* The condition-only route is where every existing link points; it now lands on the
+                page that edits the whole rule, so no bookmark 404s. */}
+            <Route path="/rules/:id/condition" element={<RuleConditionRedirect />} />
             <Route path="/rules/:id/matches" element={<RuleBuilderPage mode="matches" />} />
             <Route path="/person-cases" element={<RecordsPage resource="person-cases" />} />
             <Route path="/audit" element={<AuditTrailView />} />

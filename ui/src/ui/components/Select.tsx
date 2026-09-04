@@ -13,7 +13,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   ref,
 ) {
   return (
-    <div className="relative inline-flex">
+    <div className="relative inline-flex min-w-0">
       <select
         ref={ref}
         className={cn(

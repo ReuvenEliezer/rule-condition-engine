@@ -32,7 +32,7 @@ describe('CaseWorkspace (US4)', () => {
   it('a case with a rule offers to open it and run it case-scoped (FR-031, FR-033)', async () => {
     server.use(http.get('/api/v1/cases/:id', () => HttpResponse.json(caseWithRule('c1'))));
     renderWorkspace();
-    expect(await screen.findByRole('link', { name: /open it to edit the condition/i })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /open it to edit/i })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /run this rule against the case/i }));
     // scope is pinned to CASE_SCOPED and locked
     const globalRadio = await screen.findByLabelText(/whole population/i);

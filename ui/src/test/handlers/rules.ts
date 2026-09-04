@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import {
+  FIELD_METADATA,
   QUERYABLE_FIELDS,
   canonicalTree,
   page,
@@ -12,6 +13,8 @@ import {
 // (research R10 — bodies shaped from a running service).
 export const rulesHandlers = [
   http.get('/api/v1/rules/fields', () => HttpResponse.json(QUERYABLE_FIELDS)),
+
+  http.get('/api/v1/rules/fields/metadata', () => HttpResponse.json(FIELD_METADATA)),
 
   http.post('/api/v1/rules/preview', () =>
     HttpResponse.json(page([personSummary(), personSummary({ id: '11111111-1111-1111-1111-111111111112', name: 'AVI LEVI' })], { totalElements: 2 })),

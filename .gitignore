@@ -2,3 +2,10 @@ target/
 .idea/
 *.iml
 .DS_Store
+
+# Node (ui/ has its own .gitignore; these guard the repo root)
+node_modules/
+dist/
+*.log
+.env
+.env.*

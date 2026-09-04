@@ -1,6 +1,28 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR. Principle I's scope is materially clarified by a narrow, explicitly
+  enumerated carve-out, and the Development Workflow gate gains the frontend half it always had in
+  practice. No principle is removed or redefined, and no previously compliant code becomes
+  non-compliant — so this is not MAJOR; obligations do change, so it is not PATCH.
+
+Amendment 1.1.0 (2026-09-03) — two text defects found by /speckit-analyze on 003-visual-rule-builder:
+
+  - Principle I: "Every listing MUST be paged. There is no unpaged list operation, publicly or
+    internally" read as absolute, but the principle's rationale and every other bullet concern
+    database-backed collections whose size grows with the population. Two endpoints return unpaged
+    arrays bounded by a compile-time registry and touching no database at all:
+    `GET /api/v1/rules/fields` and the `GET /api/v1/rules/fields/metadata` that 003 adds. The bullet
+    is now scoped to database-backed collections, with a carve-out that must name each endpoint it
+    covers — so it cannot widen by precedent. The prohibition stays absolute for Postgres reads.
+    No migration note is required: nothing that was compliant has become non-compliant.
+  - Development Workflow: the Definition of done named `./mvnw verify`, a script this repository
+    does not contain. Corrected to the cached wrapper distribution actually used, and the `ui/`
+    typecheck/lint/test gate that 002 established is now recorded rather than assumed.
+
+--- Original ratification report (1.0.0) below ---
+
 Version change: (unversioned template) → 1.0.0
 Bump rationale: MAJOR/initial. The file was the unfilled scaffold — every principle was a
   [PRINCIPLE_N_NAME] placeholder — so this is the first ratified version, not an amendment.
@@ -40,7 +62,15 @@ Deferred items:
 Filtering, counting, ordering, and pagination MUST happen in Postgres. No code path may load a
 collection and reduce it in memory, and no endpoint may return an unbounded collection.
 
-- Every listing MUST be paged. There is no unpaged list operation, publicly or internally.
+- Every listing of a **database-backed collection** MUST be paged. There is no unpaged list
+  operation over such a collection, publicly or internally.
+- **Narrow carve-out**: a response whose size is fixed by a compile-time registry rather than by a
+  query result, and which touches no database, is not a listing for the purposes of this principle
+  and need not be paged. This covers exactly two endpoints today —
+  `GET /api/v1/rules/fields` and `GET /api/v1/rules/fields/metadata`, both derived from
+  `PersonFieldRegistry`, a `static final Map`. Anything read from Postgres is outside the carve-out
+  and the prohibition above applies absolutely. A new endpoint may claim the carve-out only by
+  naming itself here in an amendment, so the exception cannot widen by precedent.
 - The server MUST clamp a client-supplied page size to `rule-engine.max-page-size` and apply
   `rule-engine.default-page-size` when none is given. Clamping is silent, never an error.
 - Every paged query MUST carry a total ordering, so consecutive pages neither repeat nor skip
@@ -54,7 +84,9 @@ collection and reduce it in memory, and no endpoint may return an unbounded coll
 population size — no index use, no database-side pagination, and memory proportional to the table
 rather than to the result page. `person` and `person_case` are unbounded by design. This is why
 `RuleCompiler` emits a `Specification` and why `CaseFile` deliberately holds no `personLinks`
-collection.
+collection. The carve-out is safe for the opposite reason: a registry-derived response cannot grow
+with the population, so paging it would add a cursor the caller must loop over to fill a dropdown —
+more machinery and worse behaviour, protecting nothing.
 
 ### II. Validate at the Earliest Decidable Point
 
@@ -166,8 +198,12 @@ was rejected and why. An unjustified violation blocks the plan.
 
 **Definition of done for a task**:
 
-- `./mvnw verify` passes. Integration tests carry `@Tag("integration")` and run against
-  Testcontainers Postgres.
+- `mvn verify` passes. **There is no `mvnw` wrapper script in this repository**; Maven is invoked
+  through the cached wrapper distribution at
+  `~/.m2/wrapper/dists/apache-maven-3.9.16/56ba1f9f/bin/mvn`. Integration tests carry
+  `@Tag("integration")` and run against Testcontainers Postgres.
+- For a change touching `ui/`, `npm run typecheck && npm run lint && npx vitest run` passes in that
+  directory. The frontend gate has applied in practice since 002; this records it.
 - Contract-level behaviour asserted by a test, not only by manual `curl`.
 - Pre-existing suites still pass unchanged unless the change deliberately alters their subject, in
   which case the change is stated explicitly.
@@ -211,4 +247,4 @@ next reader inherits the reasoning rather than re-deriving it.
 in `CLAUDE.md` where present. Those describe how the system is built; this document constrains what
 may be built.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-30 | **Last Amended**: 2026-08-30
+**Version**: 1.1.0 | **Ratified**: 2026-08-30 | **Last Amended**: 2026-09-03

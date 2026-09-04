@@ -1,6 +1,7 @@
 package com.eliezer.ruleengine.api;
 
 import com.eliezer.ruleengine.api.crud.CrudController;
+import com.eliezer.ruleengine.api.dto.FieldMetadataVm;
 import com.eliezer.ruleengine.api.dto.MatchScope;
 import com.eliezer.ruleengine.api.dto.PageResponse;
 import com.eliezer.ruleengine.api.dto.PersonVm;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.eliezer.ruleengine.rule.compiler.PersonFieldRegistry;
 import com.eliezer.ruleengine.rule.compiler.RuleCompiler;
 import com.eliezer.ruleengine.rule.validation.RuleEngineProperties;
+import com.eliezer.ruleengine.service.FieldMetadataService;
 import com.eliezer.ruleengine.service.RuleCrudService;
 import com.eliezer.ruleengine.service.RuleEvaluationService;
 import com.eliezer.ruleengine.service.RuleService;
@@ -44,6 +46,7 @@ public class RuleController extends CrudController<Rule, RuleVm, UUID> {
     private final RuleEvaluationService evaluationService;
     private final RuleCompiler ruleCompiler;
     private final PersonFieldRegistry personFieldRegistry;
+    private final FieldMetadataService fieldMetadataService;
     private final RuleEngineProperties properties;
 
     public RuleController(RuleCrudService crudService,
@@ -51,12 +54,14 @@ public class RuleController extends CrudController<Rule, RuleVm, UUID> {
                           RuleEvaluationService evaluationService,
                           RuleCompiler ruleCompiler,
                           PersonFieldRegistry personFieldRegistry,
+                          FieldMetadataService fieldMetadataService,
                           RuleEngineProperties properties) {
         super(crudService, properties);
         this.ruleService = ruleService;
         this.evaluationService = evaluationService;
         this.ruleCompiler = ruleCompiler;
         this.personFieldRegistry = personFieldRegistry;
+        this.fieldMetadataService = fieldMetadataService;
         this.properties = properties;
     }
 
@@ -88,10 +93,26 @@ public class RuleController extends CrudController<Rule, RuleVm, UUID> {
                 java.util.function.Function.identity());
     }
 
-    /** Drives the field dropdown in a rule-builder UI. */
+    /**
+     * Sorted logical names only. Superseded as a rule builder's source by
+     * {@link #fieldMetadata()}, and left unchanged for the callers it already has.
+     */
     @GetMapping("/fields")
     public List<String> queryableFields() {
         return ruleCompiler.queryableFields(personFieldRegistry);
+    }
+
+    /**
+     * Everything a rule builder needs to offer safe choices: each queryable field's label, type,
+     * effective operator set and — when enumerated — its permitted values.
+     *
+     * <p>Unpaged, and deliberately so: the body is bounded by the registry, a compile-time
+     * constant, not by a query result, and no database is touched. That is the narrow carve-out
+     * the constitution's Principle I names for this endpoint and for {@code GET /fields}.
+     */
+    @GetMapping("/fields/metadata")
+    public List<FieldMetadataVm> fieldMetadata() {
+        return fieldMetadataService.publishedFields();
     }
 
     /**

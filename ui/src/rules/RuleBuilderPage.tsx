@@ -1,4 +1,5 @@
-// Routes the rule builder / condition editor / matches views (User Stories 1 and 2).
+// Routes the three rule views: create (the builder), edit (the rule page, which owns name,
+// enabled state and conditions together), and matches.
 
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +8,7 @@ import { qk } from '../api/queries';
 import { ApiFailure } from '../api/client';
 import { FailureBanner } from '../ui/FailureBanner';
 import { RuleBuilder } from './RuleBuilder';
+import { RulePage } from './RulePage';
 import { MatchesView } from './MatchesView';
 
 export function RuleBuilderPage({ mode }: { mode: 'create' | 'edit' | 'matches' }) {
@@ -18,10 +20,18 @@ export function RuleBuilderPage({ mode }: { mode: 'create' | 'edit' | 'matches' 
       </section>
     );
   }
-  return <RuleForId mode={mode} />;
+  // The rule page fetches the rule itself — it must hold the version it read, so a second fetch
+  // here would be a second source of truth for exactly the value the staleness check depends on.
+  if (mode === 'edit') return <RuleForEdit />;
+  return <RuleMatches />;
 }
 
-function RuleForId({ mode }: { mode: 'edit' | 'matches' }) {
+function RuleForEdit() {
+  const { id } = useParams<{ id: string }>();
+  return <RulePage ruleId={id ?? ''} />;
+}
+
+function RuleMatches() {
   const { id } = useParams<{ id: string }>();
   const ruleId = id ?? '';
   const query = useQuery({
@@ -39,19 +49,10 @@ function RuleForId({ mode }: { mode: 'edit' | 'matches' }) {
   const rule = query.data;
   if (!rule) return <p>Rule not found.</p>;
 
-  if (mode === 'matches') {
-    return (
-      <section>
-        <h2>Run rule: {rule.name}</h2>
-        <MatchesView ruleId={rule.id} caseId={rule.caseId} />
-      </section>
-    );
-  }
-
   return (
     <section>
-      <h2>Edit condition: {rule.name}</h2>
-      <RuleBuilder mode="edit" ruleId={rule.id} initialTree={rule.condition} />
+      <h2>Run rule: {rule.name}</h2>
+      <MatchesView ruleId={rule.id} caseId={rule.caseId} />
     </section>
   );
 }

@@ -70,6 +70,16 @@ export const ALL_COMPARISON_OPERATORS: readonly ComparisonOperator[] = [
   'NOT_IN',
 ];
 
+/**
+ * Group headers in words. A bare AND/OR/NOT is jargon to an analyst reading a rule for the first
+ * time, and FR-006 forbids a raw operator name being the only text an author sees.
+ */
+export const GROUP_OPERATOR_LABELS: Record<GroupOperator, string> = {
+  AND: 'Match all of the following',
+  OR: 'Match any of the following',
+  NOT: 'Match records that do NOT satisfy',
+};
+
 export const OPERATOR_LABELS: Record<ComparisonOperator | PresenceOperator, string> = {
   EQUALS: 'equals',
   NOT_EQUALS: 'does not equal',

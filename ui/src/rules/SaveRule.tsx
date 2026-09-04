@@ -80,7 +80,7 @@ export function SaveRule({ caseId, tree, canSave }: SaveRuleProps) {
     return (
       <div>
         <p>This case already has a rule — a case holds at most one.</p>
-        <Link to={`/rules/${existingRuleId}/condition`}>Open the existing rule</Link>
+        <Link to={`/rules/${existingRuleId}`}>Open the existing rule</Link>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export function SaveRule({ caseId, tree, canSave }: SaveRuleProps) {
       {failure && (
         <FailureBanner failure={failure}>
           {failure.kind === 'refusal' && caseQuery.data?.ruleId && (
-            <Link to={`/rules/${caseQuery.data.ruleId}/condition`}>Open the existing rule</Link>
+            <Link to={`/rules/${caseQuery.data.ruleId}`}>Open the existing rule</Link>
           )}
         </FailureBanner>
       )}

@@ -122,7 +122,7 @@ function RunFailure({ error, ruleId, onRetry }: { error: unknown; ruleId: string
     <FailureBanner failure={failure} onRetry={onRetry}>
       {offerEdit && (
         <p>
-          <Link to={`/rules/${ruleId}/condition`}>Open the rule to edit its condition</Link>
+          <Link to={`/rules/${ruleId}`}>Open the rule to edit it</Link>
         </p>
       )}
     </FailureBanner>

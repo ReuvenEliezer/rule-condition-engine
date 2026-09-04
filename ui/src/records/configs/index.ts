@@ -66,11 +66,10 @@ export const RULES_CONFIG: ResourceConfig = {
     { key: 'caseId', label: 'Case', render: (r) => asRule(r).caseId },
     { key: 'enabled', label: 'Enabled', render: (r) => (asRule(r).enabled ? 'yes' : 'no') },
   ],
-  // A rule cannot be created here — its condition needs the builder. Editing name/enabled is fine.
-  writableFields: [
-    { name: 'name', label: 'Name', kind: 'text', required: true, maxLength: 200 },
-    { name: 'enabled', label: 'Enabled', kind: 'boolean' },
-  ],
+  // A rule is neither created nor edited here. Its condition needs the builder, and its name and
+  // enabled state are saved together WITH the condition on the rule page, as one change producing
+  // one audit entry. Editing them here would be the second surface this feature exists to remove.
+  writableFields: [],
   createDefaults: {},
   retirement: {
     kind: 'offered',

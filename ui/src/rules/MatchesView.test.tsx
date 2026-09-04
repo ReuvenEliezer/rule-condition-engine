@@ -78,7 +78,7 @@ describe('MatchesView (US2)', () => {
     await userEvent.click(screen.getByLabelText(/whole population/i));
     await userEvent.click(screen.getByRole('button', { name: /run rule/i }));
     await waitFor(() =>
-      expect(screen.getByRole('link', { name: /open the rule to edit its condition/i })).toBeInTheDocument(),
+      expect(screen.getByRole('link', { name: /open the rule to edit it/i })).toBeInTheDocument(),
     );
     expect(screen.getByText(/nickname/)).toBeInTheDocument();
   });
