@@ -13,6 +13,38 @@ import type {
 } from '../api/types';
 import type { RuleNode } from '../api/tree';
 
+/**
+ * The body GET /api/v1/rules/fields/metadata actually returns, captured from the running service.
+ * Note what is absent from every entry: joinPath, attributePath and javaType (contract §2.2), and
+ * every ordered operator on the text and instant fields (contract §3.1).
+ */
+export const FIELD_METADATA = [
+  { logicalName: 'age', label: 'Age', valueKind: 'NUMBER',
+    operators: ['EQUALS', 'NOT_EQUALS', 'BETWEEN', 'GT', 'GTE', 'LT', 'LTE', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: null },
+  { logicalName: 'case.role', label: 'Linked case — role', valueKind: 'ENUM',
+    operators: ['EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: ['SUBJECT', 'ASSOCIATE', 'WITNESS'] },
+  { logicalName: 'case.status', label: 'Linked case — status', valueKind: 'ENUM',
+    operators: ['EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: ['OPEN', 'UNDER_REVIEW', 'CLOSED'] },
+  { logicalName: 'case.title', label: 'Linked case — title', valueKind: 'TEXT',
+    operators: ['EQUALS', 'NOT_EQUALS', 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: null },
+  { logicalName: 'city', label: 'City', valueKind: 'TEXT',
+    operators: ['EQUALS', 'NOT_EQUALS', 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: null },
+  { logicalName: 'createdAt', label: 'Created at', valueKind: 'INSTANT',
+    operators: ['EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: null },
+  { logicalName: 'name', label: 'Name', valueKind: 'TEXT',
+    operators: ['EQUALS', 'NOT_EQUALS', 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: null },
+  { logicalName: 'risk', label: 'Risk level', valueKind: 'ENUM',
+    operators: ['EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN'],
+    presenceTestable: true, enumValues: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+] as const;
+
 export const QUERYABLE_FIELDS: string[] = [
   'age',
   'case.role',

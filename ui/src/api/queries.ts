@@ -23,7 +23,9 @@ export const queryClient = new QueryClient({
 
 // Key factory — one place so keys cannot drift between reader and invalidator.
 export const qk = {
-  queryableFields: () => ['rules', 'fields'] as const,
+  /** Published field metadata — a key of its own, so it fails and retries independently
+   * of the rule being viewed (FR-040). */
+  fieldMetadata: () => ['rules', 'fields', 'metadata'] as const,
 
   persons: {
     list: (params: unknown) => ['persons', 'list', params] as const,

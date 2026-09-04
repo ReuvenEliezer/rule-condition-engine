@@ -226,12 +226,18 @@ export function RecordList({ config, onOpen, onCreate }: RecordListProps) {
                       </td>
                     ))}
                     <td className="px-4 py-3 text-right">
-                      {config.resource === 'cases' ? (
+                      {/*
+                        Two resources have a dedicated page rather than the generic in-place
+                        editor. For rules that is the point of the rule page: name, enabled state
+                        and conditions belong in ONE place, so the list must not offer a second
+                        surface that edits half of them.
+                      */}
+                      {config.resource === 'cases' || config.resource === 'rules' ? (
                         <Link
-                          to={`/cases/${row.id}`}
+                          to={config.resource === 'cases' ? `/cases/${row.id}` : `/rules/${row.id}`}
                           className="text-sm font-medium text-brand-600 no-underline hover:underline dark:text-brand-300"
                         >
-                          Open workspace →
+                          {config.resource === 'cases' ? 'Open workspace →' : 'Open rule →'}
                         </Link>
                       ) : (
                         <button

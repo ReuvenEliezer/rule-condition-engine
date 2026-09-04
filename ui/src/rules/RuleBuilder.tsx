@@ -2,22 +2,25 @@
 // validator in tree/validate.ts fails, and announces validation failures through the assertive
 // live region.
 //
-// RULE_TREE_TOO_COMPLEX (FR-012) is surfaced by the FailureBanner inside PreviewPanel / SaveRule /
-// EditCondition: only the server message names which of the three budgets was exceeded and its
-// limit, so the client does NOT mirror the budgets — it shows the message.
+// RULE_TREE_TOO_COMPLEX (FR-029) is surfaced by the FailureBanner inside PreviewPanel / SaveRule:
+// only the server message names which of the three budgets was exceeded and its limit, so the
+// client does NOT mirror the budgets — it shows the message.
+//
+// Field choices come from GET /rules/fields/metadata. There is no start-up drift check any more:
+// it existed to detect divergence between two copies of the metadata, and there is now one copy.
+// A metadata failure is its own retryable failure, distinct from the rule being unavailable (FR-040).
 
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RuleNode } from '../api/tree';
+import type { FieldMetadata } from './metadata';
 import { qk } from '../api/queries';
-import { queryableFields } from '../api/rules';
-import { compareFieldSets } from './catalogValidation';
-import { GroupNodeEditor } from './tree/GroupNodeEditor';
+import { fieldMetadata } from '../api/fieldMetadata';
+import { RuleConditionEditor } from './RuleConditionEditor';
 import { newConditionLeaf, newGroup } from './tree/treeOps';
 import { validateTree } from './tree/validate';
 import { PreviewPanel } from './PreviewPanel';
 import { SaveRule } from './SaveRule';
-import { EditCondition } from './EditCondition';
 import { CasePicker } from './CasePicker';
 import { useAnnounce } from '../ui/LiveRegion';
 import { FailureBanner } from '../ui/FailureBanner';
@@ -27,59 +30,48 @@ export type RuleBuilderProps =
   | { mode: 'create'; initialTree?: RuleNode }
   | { mode: 'edit'; ruleId: string; initialTree: RuleNode };
 
-const freshTree = (): RuleNode => {
-  const g = newGroup('AND');
-  return { ...g, children: [newConditionLeaf()] } as RuleNode;
-};
-
 export function RuleBuilder(props: RuleBuilderProps) {
   const announce = useAnnounce();
-  const [tree, setTree] = useState<RuleNode>(
-    'initialTree' in props && props.initialTree ? props.initialTree : freshTree(),
+  const [tree, setTree] = useState<RuleNode | null>(
+    'initialTree' in props && props.initialTree ? props.initialTree : null,
   );
   const [targetCaseId, setTargetCaseId] = useState<string | null>(null);
 
-  // Start-up catalog validation — blocks the builder specifically on a mismatch (spec dependency #2).
-  const fieldsQuery = useQuery({
-    queryKey: qk.queryableFields(),
-    queryFn: ({ signal }) => queryableFields(signal),
+  const metadataQuery = useQuery({
+    queryKey: qk.fieldMetadata(),
+    queryFn: ({ signal }) => fieldMetadata(signal),
   });
+  const fields = useMemo(() => metadataQuery.data ?? [], [metadataQuery.data]);
 
-  const check = useMemo(
-    () => (fieldsQuery.isSuccess ? compareFieldSets(fieldsQuery.data) : null),
-    [fieldsQuery.isSuccess, fieldsQuery.data],
-  );
-  const builderActive = check?.status === 'ok';
+  // A create starts from one empty comparison on the first published field, so the seed waits for
+  // the metadata rather than guessing a field name the service may not publish.
+  const draft = tree ?? (fields.length > 0 ? seedTree(fields) : null);
 
-  const violations = useMemo(() => validateTree(tree), [tree]);
-  const valid = violations.length === 0;
+  const violations = useMemo(() => (draft ? validateTree(draft, fields) : []), [draft, fields]);
+  const valid = draft !== null && violations.length === 0;
 
   useEffect(() => {
-    if (builderActive && !valid && violations[0]) {
+    if (draft && !valid && violations[0]) {
       announce(`Condition not ready: ${violations[0].message}`, 'assertive');
     }
-  }, [builderActive, valid, violations, announce]);
+  }, [draft, valid, violations, announce]);
 
-  if (fieldsQuery.isLoading) return <p>Checking the field catalog…</p>;
+  if (metadataQuery.isLoading) return <p>Loading the available fields…</p>;
 
-  if (fieldsQuery.isError) {
+  if (metadataQuery.isError) {
     const failure =
-      fieldsQuery.error instanceof ApiFailure
-        ? fieldsQuery.error.failure
+      metadataQuery.error instanceof ApiFailure
+        ? metadataQuery.error.failure
         : { kind: 'transport' as const, cause: 'unknown' };
-    return <FailureBanner failure={failure} onRetry={() => void fieldsQuery.refetch()} />;
-  }
-
-  if (check && check.status === 'mismatch') {
     return (
-      <div className="failure-banner" role="alert">
-        <p>
-          <strong>The rule builder is unavailable.</strong>
-        </p>
-        <p>{check.message}</p>
+      <div>
+        <p>The field choices could not be loaded, so conditions cannot be edited yet.</p>
+        <FailureBanner failure={failure} onRetry={() => void metadataQuery.refetch()} />
       </div>
     );
   }
+
+  if (!draft) return <p>No fields are published, so a condition cannot be built.</p>;
 
   return (
     <div>
@@ -101,39 +93,23 @@ export function RuleBuilder(props: RuleBuilderProps) {
         </ul>
       </details>
 
-      <GroupNodeEditor
-        node={tree.type === 'GROUP' ? tree : { type: 'GROUP', operator: 'AND', children: [tree] }}
-        path={[]}
-        depth={0}
-        isRoot
-        onChange={setTree}
-      />
+      <RuleConditionEditor tree={draft} fields={fields} onChange={setTree} />
 
-      {!valid && (
-        <ul aria-label="Why preview and save are blocked">
-          {violations.map((v, i) => (
-            <li key={i} className="field-error">
-              {v.message}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <PreviewPanel tree={tree} canPreview={valid} />
+      <PreviewPanel tree={draft} canPreview={valid} />
 
       {props.mode === 'create' ? (
         <section aria-labelledby="save-heading">
           <h3 id="save-heading">Save</h3>
           <p>Choose the case this rule belongs to. A case holds at most one rule.</p>
           <CasePicker selectedCaseId={targetCaseId} onSelect={setTargetCaseId} />
-          {targetCaseId && <SaveRule caseId={targetCaseId} tree={tree} canSave={valid} />}
+          {targetCaseId && <SaveRule caseId={targetCaseId} tree={draft} canSave={valid} />}
         </section>
-      ) : (
-        <section aria-labelledby="replace-heading">
-          <h3 id="replace-heading">Replace this rule&rsquo;s condition</h3>
-          <EditCondition ruleId={props.ruleId} tree={tree} canSave={valid} />
-        </section>
-      )}
+      ) : null}
     </div>
   );
 }
+
+const seedTree = (fields: readonly FieldMetadata[]): RuleNode => {
+  const group = newGroup('AND');
+  return { ...group, children: [newConditionLeaf(fields)] } as RuleNode;
+};

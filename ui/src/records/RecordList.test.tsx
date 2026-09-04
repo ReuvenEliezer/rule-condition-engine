@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { server } from '../test/server';
 import { RecordList } from './RecordList';
 import { CASES_CONFIG, PERSONS_CONFIG, PERSON_CASES_CONFIG, RULES_CONFIG } from './configs';
-import { page, personSummary } from '../test/fixtures';
+import { page, personSummary, ruleSummary } from '../test/fixtures';
 
 function renderList(config = PERSONS_CONFIG) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -18,6 +18,43 @@ function renderList(config = PERSONS_CONFIG) {
     </QueryClientProvider>,
   );
 }
+
+describe('RecordList — the rules resource routes to the rule page (US3, FR-034)', () => {
+  it('offers a LINK to the rule page instead of opening the generic in-place editor', async () => {
+    server.use(http.get('/api/v1/rules', () => HttpResponse.json(page([ruleSummary()], { totalElements: 1 }))));
+    const onOpen = vi.fn();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <RecordList config={RULES_CONFIG} onOpen={onOpen} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const link = await screen.findByRole('link', { name: /open rule/i });
+    expect(link).toHaveAttribute('href', `/rules/${ruleSummary().id}`);
+    // …and no in-place "Open" button that would edit name/enabled on a second surface
+    expect(screen.queryByRole('button', { name: /^open/i })).not.toBeInTheDocument();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('keeps the rest of the rules record surface unchanged (FR-034)', async () => {
+    server.use(http.get('/api/v1/rules', () => HttpResponse.json(page([ruleSummary()], { totalElements: 1 }))));
+    renderList(RULES_CONFIG);
+
+    await screen.findByRole('link', { name: /open rule/i });
+    // list columns, sort keys and the no-create rule all survive the route change
+    expect(RULES_CONFIG.sortKeys).toEqual(['id', 'name', 'enabled', 'createdAt', 'updatedAt']);
+    expect(RULES_CONFIG.creatable).toBe(false);
+    expect(RULES_CONFIG.retirement.kind).toBe('offered');
+    if (RULES_CONFIG.retirement.kind === 'offered') {
+      expect(RULES_CONFIG.retirement.explain).toMatch(/disabled, not deleted/i);
+    }
+    // the generic editor no longer owns any rule field
+    expect(RULES_CONFIG.writableFields).toEqual([]);
+  });
+});
 
 describe('RecordList sort keys (FR-021, contract §1.2)', () => {
   it('each resource offers exactly its allowed sort keys and no other', () => {
